@@ -1,4 +1,4 @@
-import logo from "@/assets/payticket-logo.jpeg";
+import logoAsset from "@/assets/ankor-logo.jpeg.asset.json";
 
 type Props = {
   width?: number;
@@ -9,8 +9,8 @@ type Props = {
 export const BrandLogo = ({ width = 96, height = 72, className = "" }: Props) => (
   <div className={`flex items-center justify-center ${className}`}>
     <img
-      src={logo}
-      alt="Logo"
+      src={logoAsset.url}
+      alt="Ankor Tech"
       width={width}
       height={height}
       className="rounded-xl object-contain shadow-soft-sm"
