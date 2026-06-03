@@ -1,66 +1,105 @@
-## Diagnóstico
 
-Cruzando código + banco, identifiquei **dois problemas independentes** que juntos explicam por que as capturas não acontecem:
+# Plano: Autonomia Multi-Tenant para Lojistas
 
-### 1. Split nunca é enviado (recipient null)
-- A loja "Igreja Batista da Lagoinha" tem `pagarme_recipient_id = re_cmpcr534o9me40l9ti0cnqz6e` cadastrado.
-- Mas todas as 41 vendas POS recentes ficaram com `seller_recipient_id = null` e `split_rules = null`.
-- Causa: `src/pages/Vendas.tsx:141` faz `supabase.from("lojas").select("pagarme_recipient_id").maybeSingle()`, porém a RLS `lojas_select` só libera leitura para **admin ou gerente**. Se quem opera o PDV é `vendedor`, a query devolve `null` silenciosamente — e o PDV envia a cobrança sem split.
-
-### 2. Webhook Pagar.me não está chegando
-- A tabela `webhook_logs` está completamente vazia, mesmo após 41 vendas POS hoje.
-- Como `charge.authorized` nunca chega na edge function, a captura automática (com split) nunca é disparada → as vendas ficam eternamente `pendente`.
-- Você confirmou que o webhook está cadastrado no painel, então o problema é configuração externa (URL, eventos, ambiente ou credenciais Basic Auth) — não dá pra corrigir só por código. Preciso de um diagnóstico ao vivo.
+Implementação em 3 prioridades. Cada bloco entra em uma rodada própria para validar incrementos.
 
 ---
 
-## Plano
+## PRIORIDADE 1 — Loja ativa por usuário
 
-### Parte A — Expor `pagarme_recipient_id` a qualquer membro da loja (corrige o split)
+### Banco
+- Nova função `get_loja_id_v2()` SECURITY DEFINER:
+  1. Lê `auth.jwt() -> 'app_metadata' ->> 'active_loja_id'`.
+  2. Se válido (usuário pertence à loja via `loja_usuarios`), retorna.
+  3. Fallback: primeira loja por `created_at ASC`.
+- Migrar TODAS as RLS policies que usam `get_loja_id()` para `get_loja_id_v2()` (clientes, produtos, estoque, vendas, venda_itens, notas_fiscais, lojas, lojas_config_fiscal, maquininhas, movimentacoes_estoque).
+- Manter `get_loja_id()` como wrapper de `get_loja_id_v2()` para não quebrar código existente.
+- Nova edge function `set-active-loja` (verify_jwt=true):
+  - Valida que `auth.uid()` pertence à `loja_id` recebida.
+  - Usa service role para `auth.admin.updateUserById(uid, { app_metadata: { ...existing, active_loja_id } })`.
+  - Retorna sucesso; cliente faz `supabase.auth.refreshSession()` para receber JWT atualizado.
 
-Criar uma função SQL `SECURITY DEFINER` que retorna apenas o recipient da loja do usuário logado, e usá-la no PDV.
-
-```sql
-create or replace function public.get_loja_pagarme_recipient()
-returns text
-language sql stable security definer set search_path = public
-as $$
-  select pagarme_recipient_id from public.lojas where id = public.get_loja_id();
-$$;
-grant execute on function public.get_loja_pagarme_recipient() to authenticated;
-```
-
-Em `src/pages/Vendas.tsx` (linha 141 / 144), trocar a leitura direta de `lojas` por:
-```ts
-const { data: recipient } = await supabase.rpc("get_loja_pagarme_recipient");
-setSellerRecipientId((recipient as string | null) ?? null);
-```
-
-Isso garante que **vendedor, gerente e admin** todos enxerguem o recipient — sem afetar a RLS atual de `lojas` (que continua restrita a admin/gerente para o resto dos campos).
-
-### Parte B — Diagnóstico do webhook (sem mudança de código)
-
-Vou rodar duas verificações comigo dirigindo e te peço para conferir no painel Pagar.me:
-
-1. **Pingar a função com Basic Auth correto** via `curl_edge_functions`, simulando um payload `charge.authorized`. Se a função responder 200 e gravar em `webhook_logs`, confirmamos que a edge function está saudável e que o problema é exclusivamente no painel.
-2. **Conferir no painel Pagar.me** (você):
-   - URL exata: `https://ujopuhxmmykakxdjemlw.supabase.co/functions/v1/pagarme-webhook`
-   - Eventos marcados: `charge.authorized`, `charge.paid`, `charge.payment_failed`, `order.paid`, `order.payment_failed`
-   - Tipo de autenticação: **Basic Auth** com `PAGARME_WEBHOOK_USER` / `PAGARME_WEBHOOK_PASS` exatamente iguais aos secrets do projeto.
-   - Ambiente correto (a chave `PAGARME_SECRET_KEY` é produção ou sandbox? O webhook precisa estar no mesmo ambiente).
-   - Ver a aba de **histórico de entregas** do webhook — se o Pagar.me está tentando enviar e levando erro (4xx/5xx), isso prova de qual lado está o problema.
-
-Depois desse diagnóstico, faço a próxima venda de teste e validamos:
-- `webhook_logs` recebe `charge.authorized`
-- Captura automática roda (`captureRes.ok`)
-- `vendas.pagamento_status` vira `pago`, `split_rules` populado
-
-### Não faz parte deste plano
-- Mexer em `create-pos-order` ou no webhook (o código deles está correto; só falta o recipient chegar e o webhook ser entregue).
-- Adicionar botão "Gerar PIX" no PDV (assunto separado da mensagem anterior, podemos retomar depois).
+### Frontend
+- `src/contexts/LojaContext.tsx`: provider com `{ lojaAtiva, lojas, setLojaAtiva, loading }`.
+  - No mount, query `loja_usuarios` join `lojas`.
+  - `setLojaAtiva(id)`: invoca edge function, refresh session, atualiza state, persiste em `localStorage` (`active_loja_id`), invalida queries React Query.
+- Wrapper `<LojaProvider>` em `App.tsx` envolvendo as rotas autenticadas.
+- Componente `LojaSwitcher` na topbar de `AppLayout` (visível somente se `lojas.length > 1`), dropdown com nome da loja.
 
 ---
 
-## Resumo dos arquivos tocados
-- **Nova migração**: cria `public.get_loja_pagarme_recipient()` + grant.
-- **`src/pages/Vendas.tsx`**: troca leitura de `lojas` por `rpc("get_loja_pagarme_recipient")`.
+## PRIORIDADE 2 — Convites de membros
+
+### Banco
+- Tabela `convites_loja`:
+  - `id uuid pk`, `loja_id uuid`, `email text`, `role text` (gerente|vendedor), `token uuid unique default gen_random_uuid()`, `status text default 'pending'` (pending|accepted|expired|cancelled), `convidado_por uuid`, `created_at`, `expires_at default now()+interval '7 days'`, `accepted_at`.
+  - GRANT authenticated + anon SELECT (somente policy por token) + service_role.
+  - RLS:
+    - `admin/gerente da loja` → SELECT/INSERT/UPDATE/DELETE seus convites.
+    - `anon` e `authenticated` → SELECT WHERE `token = current_setting('request.jwt.claim.token', true)` — na prática, leitura por token é feita via edge function com service role; manter RLS estrito (apenas membros da loja leem).
+- Função `aceitar_convite(_token uuid)` SECURITY DEFINER: valida token, status pending, não expirado, insere `loja_usuarios`, marca aceito. Retorna `loja_id`.
+- Edge function `enviar-convite` (verify_jwt=true): valida admin/gerente, cria registro, envia email com link `/aceitar-convite?token=...` via Lovable transactional email (`scaffold_transactional_email` + send-transactional-email).
+
+### Frontend
+- Página `/loja/equipe` (admin/gerente):
+  - Lista membros (`loja_usuarios` + email do auth via edge function `listar-membros`).
+  - Ações: alterar role (não permite rebaixar a si mesmo), remover membro.
+  - Lista convites pendentes: reenviar / cancelar.
+  - Form de convite (email + role).
+- Página pública `/aceitar-convite?token=...`:
+  - Edge function `validar-convite` retorna `{ loja_nome, email, role }` ou erro.
+  - Se sem sessão → mostra signup/login com email pré-preenchido; após auth, chama `aceitar-convite-rpc`.
+  - Se com sessão → confirma e chama RPC `aceitar_convite`.
+  - Redireciona ao dashboard e seta a loja como ativa.
+- Link "Equipe" no sidebar (visível para admin/gerente).
+
+---
+
+## PRIORIDADE 3 — Onboarding fiscal guiado
+
+### Banco
+- Adicionar coluna `lojas_config_fiscal.cert_pfx_base64 text` (ou usar storage privado `certificados-fiscais` — preferido).
+- Bucket privado `certificados-fiscais` com RLS por loja_id (path `{loja_id}/cert.pfx`).
+- Senha do certificado: armazenar em Supabase Vault via função SECURITY DEFINER `set_cert_senha(_loja_id, _senha)` que grava em `vault.secrets` com nome `cert_pwd_{loja_id}`. Remover coluna `cert_senha` (ou deixar nula e ignorar).
+- Nada exposto via RLS pública.
+
+### Edge function
+- `cert-upload` (verify_jwt=true, admin only):
+  - Recebe base64 + senha.
+  - Valida o .pfx (tentativa de parse com node-forge ou similar via npm:).
+  - Faz upload no bucket privado.
+  - Salva senha no Vault.
+  - Nunca loga conteúdo nem senha.
+
+### Frontend
+- `Onboarding.tsx`: novo Step 3 "Configuração Fiscal" (opcional, botão "Configurar depois").
+  - Regime tributário (select), Ambiente (radio), Série NF-e, Série NFC-e, CSC ID, CSC Token (com tooltips), upload .pfx (≤2MB, valida extensão), senha.
+- Página `/loja/fiscal-config` reaproveitando o mesmo componente do step 3.
+- Badge no Dashboard:
+  - 🔴 "Fiscal não configurado" → link `/loja/fiscal-config`
+  - 🟡 "Em homologação" → link para alternar produção
+  - 🟢 "Ativo em produção"
+  - Lógica: query `lojas_config_fiscal` por `loja_id`; sem registro = vermelho; `ambiente='homologacao'` = amarelo; `ambiente='producao'` = verde.
+
+---
+
+## Rotas novas em `App.tsx`
+- `/loja/equipe`
+- `/loja/fiscal-config`
+- `/aceitar-convite`
+
+## Ordem de execução
+1. Migration P1 + edge function + LojaContext + Switcher.
+2. Validar funcionamento (criar segunda loja de teste).
+3. Migration P2 (convites_loja + RPC) + edge functions + páginas equipe/aceitar-convite + email transacional.
+4. Validar fluxo de convite end-to-end.
+5. Migration P3 (bucket + vault) + edge function cert-upload + step 3 onboarding + página fiscal-config + badge.
+
+## Notas técnicas
+- Email transacional: usar `scaffold_transactional_email` (Lovable Emails), sem Resend.
+- React Query: invalidar todas as queries após troca de loja (`queryClient.clear()`).
+- Compatibilidade: `get_loja_id()` continua existindo como alias para não quebrar funções/triggers atuais.
+- Responsividade: páginas /loja/equipe e /loja/fiscal-config usam padrões já existentes (Card + grid responsivo do projeto).
+- Segurança: cert_pfx e senha jamais retornados em SELECT; somente edge functions com service role acessam.
+
+Confirme se posso prosseguir com a Prioridade 1 primeiro (migration + edge function + contexto + switcher), e em seguida atacar P2 e P3 em rodadas separadas.

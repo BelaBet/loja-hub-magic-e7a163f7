@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { LojaSwitcher } from "@/components/LojaSwitcher";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -63,6 +64,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
           <header className="h-14 flex items-center gap-3 border-b border-border bg-background/80 backdrop-blur px-4 sticky top-0 z-20">
             <SidebarTrigger className="h-10 w-10" aria-label="Abrir menu" />
             <div className="flex-1" />
+            <LojaSwitcher />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" aria-label="Menu do usuário">
