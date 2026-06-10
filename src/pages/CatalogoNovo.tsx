@@ -270,9 +270,58 @@ const CatalogoNovo = () => {
                     <Input type="number" min="0" step="0.001" value={form.estoque_minimo} onChange={set("estoque_minimo")} className="mono" />
                   </Field>
                 </div>
-                <Field label="NCM"><Input value={form.ncm} onChange={set("ncm")} maxLength={20} placeholder="6109.10.00" className="mono" /></Field>
+                <Field label="Unidade de medida">
+                  <Select value={form.unidade_medida} onValueChange={setVal("unidade_medida")}>
+                    <SelectTrigger className="mono"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UN">UN — Unidade</SelectItem>
+                      <SelectItem value="PC">PC — Peça</SelectItem>
+                      <SelectItem value="CX">CX — Caixa</SelectItem>
+                      <SelectItem value="KG">KG — Quilograma</SelectItem>
+                      <SelectItem value="G">G — Grama</SelectItem>
+                      <SelectItem value="L">L — Litro</SelectItem>
+                      <SelectItem value="ML">ML — Mililitro</SelectItem>
+                      <SelectItem value="M">M — Metro</SelectItem>
+                      <SelectItem value="M2">M² — Metro quadrado</SelectItem>
+                      <SelectItem value="M3">M³ — Metro cúbico</SelectItem>
+                      <SelectItem value="PR">PR — Par</SelectItem>
+                      <SelectItem value="DZ">DZ — Dúzia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
               </Card>
             </div>
+
+            <Card className="p-7 shadow-soft-sm space-y-5">
+              <SectionTitle>Dados fiscais</SectionTitle>
+              <p className="text-xs text-muted-foreground -mt-3">
+                Utilizados na emissão de NF-e / NFC-e. Use os padrões se não souber o valor exato.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="NCM">
+                  <Input value={form.ncm} onChange={set("ncm")} maxLength={20} placeholder="6109.10.00" className="mono" />
+                </Field>
+                <Field label="CFOP">
+                  <Input value={form.cfop} onChange={set("cfop")} maxLength={10} placeholder="5102" className="mono" />
+                </Field>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="CST / CSOSN ICMS">
+                  <Input value={form.cst_icms} onChange={set("cst_icms")} maxLength={10} placeholder="102" className="mono" />
+                </Field>
+                <Field label="Alíquota ICMS (%)">
+                  <Input type="number" step="0.01" min="0" max="100" value={form.aliquota_icms} onChange={set("aliquota_icms")} className="mono" />
+                </Field>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="CST PIS">
+                  <Input value={form.cst_pis} onChange={set("cst_pis")} maxLength={10} placeholder="07" className="mono" />
+                </Field>
+                <Field label="CST COFINS">
+                  <Input value={form.cst_cofins} onChange={set("cst_cofins")} maxLength={10} placeholder="07" className="mono" />
+                </Field>
+              </div>
+            </Card>
 
             <Card className="p-7 shadow-soft-sm space-y-5">
               <SectionTitle>Fotos e status</SectionTitle>
