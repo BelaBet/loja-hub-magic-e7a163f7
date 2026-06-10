@@ -48,12 +48,26 @@ export function LojaProvider({ children }: { children: ReactNode }) {
       return;
     }
     const list = (data ?? []) as unknown as LojaMembership[];
-    setLojas(list);
+    let finalList = list;
+    if (finalList.length === 0) {
+      // Usuário ainda não tem loja vinculada — cria automaticamente
+      const { error: ensureErr } = await supabase.rpc("ensure_loja_for_current_user" as never);
+      if (ensureErr) {
+        console.error("[LojaContext] ensure_loja error", ensureErr);
+      } else {
+        const { data: data2 } = await supabase
+          .from("loja_usuarios")
+          .select("loja_id, role, loja:lojas(id, nome, logo_url)")
+          .order("created_at", { ascending: true });
+        finalList = ((data2 ?? []) as unknown) as LojaMembership[];
+      }
+    }
+    setLojas(finalList);
 
     const claimLoja = (session.user.app_metadata as { active_loja_id?: string } | undefined)?.active_loja_id ?? null;
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
     const preferred = claimLoja ?? stored ?? null;
-    const valid = preferred && list.some((l) => l.loja_id === preferred) ? preferred : list[0]?.loja_id ?? null;
+    const valid = preferred && finalList.some((l) => l.loja_id === preferred) ? preferred : finalList[0]?.loja_id ?? null;
     setLojaAtivaId(valid);
     setLoading(false);
   }, []);
