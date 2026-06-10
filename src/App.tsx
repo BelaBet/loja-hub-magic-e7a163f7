@@ -24,6 +24,7 @@ import Admin from "./pages/Admin.tsx";
 import WebhookAuditoria from "./pages/WebhookAuditoria.tsx";
 import TestePagamento from "./pages/TestePagamento.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
+import Perfil from "./pages/Perfil.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/admin/webhooks" element={<WebhookAuditoria />} />
           <Route path="/admin/teste-pagamento" element={<TestePagamento />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
+          <Route path="/perfil" element={<Perfil />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
