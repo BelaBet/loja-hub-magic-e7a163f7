@@ -13,6 +13,9 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ProductPhotosInput } from "@/components/ProductImageInput";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Nome obrigatório").max(200),
@@ -28,12 +31,20 @@ const schema = z.object({
   preco_atacado: z.number().min(0).optional(),
   estoque_inicial: z.number().min(0),
   estoque_minimo: z.number().min(0),
+  unidade_medida: z.string().trim().max(10).optional(),
+  cfop: z.string().trim().max(10).optional(),
+  cst_icms: z.string().trim().max(10).optional(),
+  aliquota_icms: z.number().min(0).max(100).optional(),
+  cst_pis: z.string().trim().max(10).optional(),
+  cst_cofins: z.string().trim().max(10).optional(),
 });
 
 const blank = {
   nome: "", sku: "", ean: "", categoria: "", marca: "", fornecedor: "", ncm: "",
   descricao: "", preco_venda: "", preco_custo: "", preco_atacado: "",
   estoque_inicial: "0", estoque_minimo: "0",
+  unidade_medida: "UN", cfop: "5102", cst_icms: "", aliquota_icms: "0",
+  cst_pis: "07", cst_cofins: "07",
 };
 
 const CatalogoNovo = () => {
@@ -77,6 +88,12 @@ const CatalogoNovo = () => {
           preco_atacado: data.preco_atacado?.toString() ?? "",
           estoque_inicial: isEdit ? (est?.quantidade?.toString() ?? "0") : "0",
           estoque_minimo: est?.quantidade_minima?.toString() ?? "0",
+          unidade_medida: data.unidade_medida ?? "UN",
+          cfop: data.cfop ?? "5102",
+          cst_icms: data.cst_icms ?? "",
+          aliquota_icms: data.aliquota_icms?.toString() ?? "0",
+          cst_pis: data.cst_pis ?? "07",
+          cst_cofins: data.cst_cofins ?? "07",
         });
       }
       setLoading(false);
@@ -85,6 +102,7 @@ const CatalogoNovo = () => {
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
+  const setVal = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
 
   const margem =
     form.preco_venda && form.preco_custo && Number(form.preco_custo) > 0
@@ -107,6 +125,12 @@ const CatalogoNovo = () => {
       preco_atacado: form.preco_atacado ? Number(form.preco_atacado) : undefined,
       estoque_inicial: Number(form.estoque_inicial || 0),
       estoque_minimo: Number(form.estoque_minimo || 0),
+      unidade_medida: form.unidade_medida || undefined,
+      cfop: form.cfop || undefined,
+      cst_icms: form.cst_icms || undefined,
+      aliquota_icms: form.aliquota_icms ? Number(form.aliquota_icms) : 0,
+      cst_pis: form.cst_pis || undefined,
+      cst_cofins: form.cst_cofins || undefined,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "Dados inválidos");
@@ -136,6 +160,12 @@ const CatalogoNovo = () => {
       preco_atacado: parsed.data.preco_atacado ?? null,
       fotos,
       ativo,
+      unidade_medida: parsed.data.unidade_medida ?? "UN",
+      cfop: parsed.data.cfop ?? null,
+      cst_icms: parsed.data.cst_icms ?? null,
+      aliquota_icms: parsed.data.aliquota_icms ?? 0,
+      cst_pis: parsed.data.cst_pis ?? null,
+      cst_cofins: parsed.data.cst_cofins ?? null,
     };
 
     if (isEdit && id) {
@@ -240,9 +270,58 @@ const CatalogoNovo = () => {
                     <Input type="number" min="0" step="0.001" value={form.estoque_minimo} onChange={set("estoque_minimo")} className="mono" />
                   </Field>
                 </div>
-                <Field label="NCM"><Input value={form.ncm} onChange={set("ncm")} maxLength={20} placeholder="6109.10.00" className="mono" /></Field>
+                <Field label="Unidade de medida">
+                  <Select value={form.unidade_medida} onValueChange={setVal("unidade_medida")}>
+                    <SelectTrigger className="mono"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UN">UN — Unidade</SelectItem>
+                      <SelectItem value="PC">PC — Peça</SelectItem>
+                      <SelectItem value="CX">CX — Caixa</SelectItem>
+                      <SelectItem value="KG">KG — Quilograma</SelectItem>
+                      <SelectItem value="G">G — Grama</SelectItem>
+                      <SelectItem value="L">L — Litro</SelectItem>
+                      <SelectItem value="ML">ML — Mililitro</SelectItem>
+                      <SelectItem value="M">M — Metro</SelectItem>
+                      <SelectItem value="M2">M² — Metro quadrado</SelectItem>
+                      <SelectItem value="M3">M³ — Metro cúbico</SelectItem>
+                      <SelectItem value="PR">PR — Par</SelectItem>
+                      <SelectItem value="DZ">DZ — Dúzia</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
               </Card>
             </div>
+
+            <Card className="p-7 shadow-soft-sm space-y-5">
+              <SectionTitle>Dados fiscais</SectionTitle>
+              <p className="text-xs text-muted-foreground -mt-3">
+                Utilizados na emissão de NF-e / NFC-e. Use os padrões se não souber o valor exato.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="NCM">
+                  <Input value={form.ncm} onChange={set("ncm")} maxLength={20} placeholder="6109.10.00" className="mono" />
+                </Field>
+                <Field label="CFOP">
+                  <Input value={form.cfop} onChange={set("cfop")} maxLength={10} placeholder="5102" className="mono" />
+                </Field>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="CST / CSOSN ICMS">
+                  <Input value={form.cst_icms} onChange={set("cst_icms")} maxLength={10} placeholder="102" className="mono" />
+                </Field>
+                <Field label="Alíquota ICMS (%)">
+                  <Input type="number" step="0.01" min="0" max="100" value={form.aliquota_icms} onChange={set("aliquota_icms")} className="mono" />
+                </Field>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="CST PIS">
+                  <Input value={form.cst_pis} onChange={set("cst_pis")} maxLength={10} placeholder="07" className="mono" />
+                </Field>
+                <Field label="CST COFINS">
+                  <Input value={form.cst_cofins} onChange={set("cst_cofins")} maxLength={10} placeholder="07" className="mono" />
+                </Field>
+              </div>
+            </Card>
 
             <Card className="p-7 shadow-soft-sm space-y-5">
               <SectionTitle>Fotos e status</SectionTitle>
