@@ -176,8 +176,17 @@ const CatalogoNovo = () => {
     }
     setSaving(true);
     const { data: lojaIdData, error: lojaErr } = await supabase.rpc("get_loja_id");
-    const loja_id = lojaIdData as string | null;
-    if (lojaErr || !loja_id) {
+    let loja_id = lojaIdData as string | null;
+    if (!loja_id) {
+      const { data: ensured } = await supabase.rpc("ensure_loja_for_current_user" as never);
+      loja_id = (ensured as unknown as string) ?? null;
+    }
+    if (lojaErr && !loja_id) {
+      setSaving(false);
+      toast.error("Não foi possível identificar sua loja.");
+      return;
+    }
+    if (!loja_id) {
       setSaving(false);
       toast.error("Não foi possível identificar sua loja.");
       return;

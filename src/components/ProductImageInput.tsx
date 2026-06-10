@@ -59,6 +59,7 @@ export const ProductPhotosInput = ({ value, onChange, max = 5 }: Props) => {
       toast.error("Sessão expirada.");
       return;
     }
+    let lojaId: string | null = null;
     const { data: lu } = await supabase
       .from("loja_usuarios")
       .select("loja_id")
@@ -66,7 +67,12 @@ export const ProductPhotosInput = ({ value, onChange, max = 5 }: Props) => {
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
-    if (!lu?.loja_id) {
+    lojaId = lu?.loja_id ?? null;
+    if (!lojaId) {
+      const { data: ensured } = await supabase.rpc("ensure_loja_for_current_user" as never);
+      lojaId = (ensured as unknown as string) ?? null;
+    }
+    if (!lojaId) {
       setUploading(false);
       toast.error("Loja não encontrada.");
       return;
@@ -83,7 +89,7 @@ export const ProductPhotosInput = ({ value, onChange, max = 5 }: Props) => {
         continue;
       }
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `${lu.loja_id}/${crypto.randomUUID()}.${ext}`;
+      const path = `${lojaId}/${crypto.randomUUID()}.${ext}`;
       const { error } = await supabase.storage.from(BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
       if (error) {
         toast.error(traduzErro(error));
@@ -126,8 +132,13 @@ export const ProductPhotosInput = ({ value, onChange, max = 5 }: Props) => {
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
-      if (!lu?.loja_id) throw new Error("Loja não encontrada.");
-      const path = `${lu.loja_id}/ai-${crypto.randomUUID()}.png`;
+      let lojaId: string | null = lu?.loja_id ?? null;
+      if (!lojaId) {
+        const { data: ensured } = await supabase.rpc("ensure_loja_for_current_user" as never);
+        lojaId = (ensured as unknown as string) ?? null;
+      }
+      if (!lojaId) throw new Error("Loja não encontrada.");
+      const path = `${lojaId}/ai-${crypto.randomUUID()}.png`;
       const { error: upErr } = await supabase.storage.from(BUCKET)
         .upload(path, blob, { contentType: "image/png", upsert: false });
       if (upErr) throw upErr;
