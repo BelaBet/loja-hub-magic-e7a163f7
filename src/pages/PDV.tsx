@@ -10,6 +10,7 @@ import { AddProductForm } from "@/components/pdv/AddProductForm";
 import { CartPanel } from "@/components/pdv/CartPanel";
 import { ScanHistory } from "@/components/pdv/ScanHistory";
 import { usePDVCart } from "@/components/pdv/usePDVCart";
+import { ReceiptDialog, type ReceiptData } from "@/components/pdv/ReceiptDialog";
 import type { PDVPayment, PDVProduct, ScanEvent } from "@/components/pdv/types";
 
 type UIState =
@@ -19,13 +20,15 @@ type UIState =
   | { view: "add_form"; ean: string };
 
 export default function PDV() {
-  const { lojaAtivaId } = useLoja();
+  const { lojaAtivaId, lojaAtiva } = useLoja();
   const cart = usePDVCart();
   const [ui, setUi] = useState<UIState>({ view: "idle" });
   const [scanLoading, setScanLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [history, setHistory] = useState<ScanEvent[]>([]);
   const [payment, setPayment] = useState<PDVPayment>("dinheiro");
+  const [receipt, setReceipt] = useState<ReceiptData | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const barcodeRef = useRef<BarcodeInputRef>(null);
 
   const fetchProductByEan = async (ean: string): Promise<PDVProduct | null> => {
@@ -119,9 +122,17 @@ export default function PDV() {
       if (iErr) throw iErr;
 
       toast.success("Venda registrada!");
+      setReceipt({
+        venda_id: venda.id,
+        items: cart.items,
+        total: cart.total,
+        payment,
+        date: new Date(),
+        loja_nome: lojaAtiva?.loja?.nome,
+      });
+      setReceiptOpen(true);
       cart.clear();
       setUi({ view: "idle" });
-      barcodeRef.current?.focus();
     } catch (e: any) {
       console.error(e);
       toast.error("Erro ao registrar venda: " + (e?.message ?? "tente novamente"));
@@ -194,6 +205,14 @@ export default function PDV() {
           </div>
         </div>
       </div>
+      <ReceiptDialog
+        open={receiptOpen}
+        onOpenChange={(o) => {
+          setReceiptOpen(o);
+          if (!o) barcodeRef.current?.focus();
+        }}
+        data={receipt}
+      />
     </AppLayout>
   );
 }
