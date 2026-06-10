@@ -863,6 +863,7 @@ export type Database = {
       }
     }
     Functions: {
+      ensure_loja_for_current_user: { Args: never; Returns: string }
       get_loja_id: { Args: never; Returns: string }
       get_loja_id_v2: { Args: never; Returns: string }
       get_loja_pagarme_recipient: { Args: never; Returns: string }
