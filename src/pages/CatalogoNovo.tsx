@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ProductPhotosInput } from "@/components/ProductImageInput";
@@ -60,6 +60,7 @@ const CatalogoNovo = () => {
   const [ativo, setAtivo] = useState(true);
   const [fotos, setFotos] = useState<string[]>([]);
   const [form, setForm] = useState(blank);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (!sourceId) return;
@@ -103,6 +104,43 @@ const CatalogoNovo = () => {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
   const setVal = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
+
+  const fillWithAI = async () => {
+    if (!form.nome.trim()) {
+      toast.error("Informe primeiro o nome do produto.");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-fill-produto", {
+        body: {
+          nome: form.nome,
+          hint: [form.categoria, form.marca].filter(Boolean).join(" | "),
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const s = data?.suggestion ?? {};
+      setForm((prev) => ({
+        ...prev,
+        descricao: prev.descricao || s.descricao || prev.descricao,
+        categoria: prev.categoria || s.categoria || prev.categoria,
+        marca: prev.marca || s.marca || prev.marca,
+        unidade_medida: s.unidade_medida || prev.unidade_medida,
+        ncm: prev.ncm || s.ncm || prev.ncm,
+        cfop: s.cfop || prev.cfop,
+        cst_icms: prev.cst_icms || s.cst_icms || prev.cst_icms,
+        aliquota_icms: (s.aliquota_icms ?? prev.aliquota_icms).toString(),
+        cst_pis: s.cst_pis || prev.cst_pis,
+        cst_cofins: s.cst_cofins || prev.cst_cofins,
+      }));
+      toast.success("Campos preenchidos pela IA. Revise antes de salvar.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao consultar IA.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const margem =
     form.preco_venda && form.preco_custo && Number(form.preco_custo) > 0
@@ -230,6 +268,20 @@ const CatalogoNovo = () => {
                 <Field label="Nome do produto" required>
                   <Input value={form.nome} onChange={set("nome")} required maxLength={200} placeholder="Ex.: Camiseta básica preta" />
                 </Field>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={fillWithAI}
+                  disabled={aiLoading || !form.nome.trim()}
+                  className="w-full gap-2"
+                >
+                  {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {aiLoading ? "Gerando sugestões…" : "Preencher campos com IA"}
+                </Button>
+                <p className="text-[11px] text-muted-foreground -mt-2">
+                  A IA preenche descrição, categoria, marca, unidade, NCM e campos fiscais com base no nome. Revise antes de salvar.
+                </p>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Field label="SKU"><Input value={form.sku} onChange={set("sku")} maxLength={80} placeholder="CAM-PRT-001" className="mono" /></Field>
                   <Field label="EAN / código de barras"><Input value={form.ean} onChange={set("ean")} maxLength={80} placeholder="7891234567890" className="mono" /></Field>
