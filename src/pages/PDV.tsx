@@ -12,6 +12,7 @@ import { ScanHistory } from "@/components/pdv/ScanHistory";
 import { usePDVCart } from "@/components/pdv/usePDVCart";
 import { ReceiptDialog, type ReceiptData } from "@/components/pdv/ReceiptDialog";
 import type { PDVPayment, PDVProduct, ScanEvent } from "@/components/pdv/types";
+import { useCoupon } from "@/hooks/useCoupon";
 
 type UIState =
   | { view: "idle" }
@@ -22,6 +23,7 @@ type UIState =
 export default function PDV() {
   const { lojaAtivaId, lojaAtiva } = useLoja();
   const cart = usePDVCart();
+  const coupon = useCoupon();
   const [ui, setUi] = useState<UIState>({ view: "idle" });
   const [scanLoading, setScanLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -97,15 +99,19 @@ export default function PDV() {
   const handleCheckout = async () => {
     if (cart.items.length === 0 || !lojaAtivaId) return;
     setSaving(true);
+    const discount = coupon.appliedCoupon?.discount_amount ?? 0;
+    const finalTotal = Math.max(0, cart.total - discount);
     try {
       const { data: venda, error: vErr } = await supabase
         .from("vendas")
         .insert({
           loja_id: lojaAtivaId,
-          total: cart.total,
+          total: finalTotal,
           forma_pagamento: payment,
           status: "concluida",
           pagamento_status: "pago",
+          coupon_code: coupon.appliedCoupon?.coupon.code ?? null,
+          coupon_discount: discount,
         })
         .select("id")
         .single();
@@ -121,17 +127,22 @@ export default function PDV() {
       const { error: iErr } = await supabase.from("venda_itens").insert(rows);
       if (iErr) throw iErr;
 
+      if (coupon.appliedCoupon) {
+        await coupon.useCouponUsage(coupon.appliedCoupon.coupon.id);
+      }
+
       toast.success("Venda registrada!");
       setReceipt({
         venda_id: venda.id,
         items: cart.items,
-        total: cart.total,
+        total: finalTotal,
         payment,
         date: new Date(),
         loja_nome: lojaAtiva?.loja?.nome,
       });
       setReceiptOpen(true);
       cart.clear();
+      coupon.removeCoupon();
       setUi({ view: "idle" });
     } catch (e: any) {
       console.error(e);
@@ -201,6 +212,18 @@ export default function PDV() {
               onClear={cart.clear}
               onCheckout={handleCheckout}
               loading={saving}
+              appliedCoupon={coupon.appliedCoupon}
+              couponLoading={coupon.loading}
+              couponError={coupon.error}
+              onApplyCoupon={async (code) => {
+                const r = await coupon.validateAndApply(code, cart.total);
+                if (r.success && r.discount_amount != null) {
+                  toast.success(`Cupom aplicado — economia de ${r.discount_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`);
+                } else if (r.error) {
+                  toast.error(r.error);
+                }
+              }}
+              onRemoveCoupon={coupon.removeCoupon}
             />
           </div>
         </div>

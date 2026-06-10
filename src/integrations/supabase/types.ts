@@ -71,6 +71,69 @@ export type Database = {
           },
         ]
       }
+      cupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          loja_id: string
+          max_uses: number
+          min_order_value: number
+          type: string
+          updated_at: string
+          used_count: number
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          loja_id: string
+          max_uses?: number
+          min_order_value?: number
+          type?: string
+          updated_at?: string
+          used_count?: number
+          value: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          loja_id?: string
+          max_uses?: number
+          min_order_value?: number
+          type?: string
+          updated_at?: string
+          used_count?: number
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cupons_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cupons_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas_publico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estoque: {
         Row: {
           deposito: string
@@ -601,6 +664,8 @@ export type Database = {
         Row: {
           base_amount: number | null
           cliente_id: string | null
+          coupon_code: string | null
+          coupon_discount: number
           created_at: string
           desconto: number
           device_serial: string | null
@@ -628,6 +693,8 @@ export type Database = {
         Insert: {
           base_amount?: number | null
           cliente_id?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
           desconto?: number
           device_serial?: string | null
@@ -655,6 +722,8 @@ export type Database = {
         Update: {
           base_amount?: number | null
           cliente_id?: string | null
+          coupon_code?: string | null
+          coupon_discount?: number
           created_at?: string
           desconto?: number
           device_serial?: string | null
@@ -807,6 +876,10 @@ export type Database = {
       has_loja_role:
         | { Args: { _loja_id: string; _role: string }; Returns: boolean }
         | { Args: { _role: string }; Returns: boolean }
+      increment_coupon_usage: {
+        Args: { p_coupon_id: string }
+        Returns: undefined
+      }
       is_super_admin: { Args: never; Returns: boolean }
     }
     Enums: {

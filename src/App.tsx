@@ -12,6 +12,7 @@ import Catalogo from "./pages/Catalogo.tsx";
 import CatalogoNovo from "./pages/CatalogoNovo.tsx";
 import Vendas from "./pages/Vendas.tsx";
 import PDV from "./pages/PDV.tsx";
+import Cupons from "./pages/Cupons.tsx";
 import VendasHistorico from "./pages/VendasHistorico.tsx";
 import Recibo from "./pages/Recibo.tsx";
 import Estoque from "./pages/Estoque.tsx";
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/catalogo/:id" element={<CatalogoNovo />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/pdv" element={<PDV />} />
+          <Route path="/cupons" element={<Cupons />} />
           <Route path="/vendas/historico" element={<VendasHistorico />} />
           <Route path="/vendas/:id/recibo" element={<Recibo />} />
           <Route path="/estoque" element={<Estoque />} />
