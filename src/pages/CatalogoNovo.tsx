@@ -13,6 +13,9 @@ import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { ProductPhotosInput } from "@/components/ProductImageInput";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 const schema = z.object({
   nome: z.string().trim().min(1, "Nome obrigatório").max(200),
@@ -28,12 +31,20 @@ const schema = z.object({
   preco_atacado: z.number().min(0).optional(),
   estoque_inicial: z.number().min(0),
   estoque_minimo: z.number().min(0),
+  unidade_medida: z.string().trim().max(10).optional(),
+  cfop: z.string().trim().max(10).optional(),
+  cst_icms: z.string().trim().max(10).optional(),
+  aliquota_icms: z.number().min(0).max(100).optional(),
+  cst_pis: z.string().trim().max(10).optional(),
+  cst_cofins: z.string().trim().max(10).optional(),
 });
 
 const blank = {
   nome: "", sku: "", ean: "", categoria: "", marca: "", fornecedor: "", ncm: "",
   descricao: "", preco_venda: "", preco_custo: "", preco_atacado: "",
   estoque_inicial: "0", estoque_minimo: "0",
+  unidade_medida: "UN", cfop: "5102", cst_icms: "", aliquota_icms: "0",
+  cst_pis: "07", cst_cofins: "07",
 };
 
 const CatalogoNovo = () => {
@@ -77,6 +88,12 @@ const CatalogoNovo = () => {
           preco_atacado: data.preco_atacado?.toString() ?? "",
           estoque_inicial: isEdit ? (est?.quantidade?.toString() ?? "0") : "0",
           estoque_minimo: est?.quantidade_minima?.toString() ?? "0",
+          unidade_medida: data.unidade_medida ?? "UN",
+          cfop: data.cfop ?? "5102",
+          cst_icms: data.cst_icms ?? "",
+          aliquota_icms: data.aliquota_icms?.toString() ?? "0",
+          cst_pis: data.cst_pis ?? "07",
+          cst_cofins: data.cst_cofins ?? "07",
         });
       }
       setLoading(false);
@@ -85,6 +102,7 @@ const CatalogoNovo = () => {
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
+  const setVal = (k: keyof typeof form) => (v: string) => setForm({ ...form, [k]: v });
 
   const margem =
     form.preco_venda && form.preco_custo && Number(form.preco_custo) > 0
@@ -107,6 +125,12 @@ const CatalogoNovo = () => {
       preco_atacado: form.preco_atacado ? Number(form.preco_atacado) : undefined,
       estoque_inicial: Number(form.estoque_inicial || 0),
       estoque_minimo: Number(form.estoque_minimo || 0),
+      unidade_medida: form.unidade_medida || undefined,
+      cfop: form.cfop || undefined,
+      cst_icms: form.cst_icms || undefined,
+      aliquota_icms: form.aliquota_icms ? Number(form.aliquota_icms) : 0,
+      cst_pis: form.cst_pis || undefined,
+      cst_cofins: form.cst_cofins || undefined,
     });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message || "Dados inválidos");
@@ -136,6 +160,12 @@ const CatalogoNovo = () => {
       preco_atacado: parsed.data.preco_atacado ?? null,
       fotos,
       ativo,
+      unidade_medida: parsed.data.unidade_medida ?? "UN",
+      cfop: parsed.data.cfop ?? null,
+      cst_icms: parsed.data.cst_icms ?? null,
+      aliquota_icms: parsed.data.aliquota_icms ?? 0,
+      cst_pis: parsed.data.cst_pis ?? null,
+      cst_cofins: parsed.data.cst_cofins ?? null,
     };
 
     if (isEdit && id) {
