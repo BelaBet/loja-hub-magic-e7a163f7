@@ -5,6 +5,8 @@ import {
 import { Trash2, ShoppingCart, Plus, Minus, CreditCard } from "lucide-react";
 import { brl } from "@/lib/format";
 import type { PDVCartItem, PDVPayment } from "./types";
+import type { AppliedCoupon } from "./coupon-types";
+import { CouponInput } from "./CouponInput";
 
 interface Props {
   items: PDVCartItem[];
@@ -16,12 +18,20 @@ interface Props {
   onClear: () => void;
   onCheckout: () => void;
   loading?: boolean;
+  appliedCoupon?: AppliedCoupon | null;
+  couponLoading?: boolean;
+  couponError?: string | null;
+  onApplyCoupon?: (code: string) => void;
+  onRemoveCoupon?: () => void;
 }
 
 export function CartPanel({
   items, total, payment, onPaymentChange,
   onUpdateQty, onRemove, onClear, onCheckout, loading,
+  appliedCoupon, couponLoading, couponError, onApplyCoupon, onRemoveCoupon,
 }: Props) {
+  const discount = appliedCoupon?.discount_amount ?? 0;
+  const finalTotal = Math.max(0, total - discount);
   return (
     <aside className="flex flex-col h-full rounded-xl border bg-card overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/30">
@@ -71,6 +81,15 @@ export function CartPanel({
 
       {items.length > 0 && (
         <div className="border-t px-4 py-4 space-y-3 bg-card">
+          {onApplyCoupon && onRemoveCoupon && (
+            <CouponInput
+              appliedCoupon={appliedCoupon ?? null}
+              loading={couponLoading}
+              error={couponError}
+              onApply={onApplyCoupon}
+              onRemove={onRemoveCoupon}
+            />
+          )}
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground">Forma de pagamento</label>
             <Select value={payment} onValueChange={(v) => onPaymentChange(v as PDVPayment)}>
@@ -85,9 +104,21 @@ export function CartPanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex justify-between items-baseline">
-            <span className="text-sm text-muted-foreground">Total</span>
-            <span className="text-2xl font-semibold">{brl(total)}</span>
+          <div className="space-y-1 pt-1 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>{brl(total)}</span>
+            </div>
+            {appliedCoupon && (
+              <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                <span>− Cupom {appliedCoupon.coupon.code}</span>
+                <span>− {brl(discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-baseline pt-1">
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-2xl font-semibold">{brl(finalTotal)}</span>
+            </div>
           </div>
           <Button className="w-full h-11" onClick={onCheckout} disabled={loading}>
             <CreditCard className="w-4 h-4 mr-2" />
