@@ -11,6 +11,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { Search, Users, Phone, MessageCircle } from "lucide-react";
+import { Smartphone } from "lucide-react";
+import { ImportContactsDialog } from "@/components/ImportContactsDialog";
 
 type ClienteRow = {
   id: string;
@@ -42,6 +44,7 @@ const Clientes = () => {
   const [linhas, setLinhas] = useState<ClienteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     void load();
@@ -91,6 +94,11 @@ const Clientes = () => {
     );
   }, [busca, linhas]);
 
+  const existingPhones = useMemo(
+    () => new Set(linhas.map((c) => onlyDigits(c.telefone)).filter(Boolean)),
+    [linhas],
+  );
+
   const whatsappLink = (tel: string | null, nome: string) => {
     const digits = onlyDigits(tel);
     if (!digits) return null;
@@ -109,14 +117,20 @@ const Clientes = () => {
           </p>
         </header>
 
-        <div className="relative max-w-md">
-          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou telefone…"
-            className="pl-9 h-11 text-base"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          <div className="relative flex-1 max-w-md">
+            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome ou telefone…"
+              className="pl-9 h-11 text-base"
+            />
+          </div>
+          <Button onClick={() => setImportOpen(true)} variant="outline" className="h-11 gap-2 shrink-0">
+            <Smartphone className="h-4 w-4" />
+            Importar contatos
+          </Button>
         </div>
 
         {loading ? (
@@ -244,6 +258,12 @@ const Clientes = () => {
           </>
         )}
       </div>
+      <ImportContactsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        existingPhones={existingPhones}
+        onImported={load}
+      />
     </AppLayout>
   );
 };
