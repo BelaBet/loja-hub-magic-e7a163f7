@@ -15,6 +15,79 @@ import { Loader2, Save, Settings, Store, CreditCard, ExternalLink, Receipt, Uplo
 import { MaquininhasSection } from "@/components/configuracoes/MaquininhasSection";
 import { brl } from "@/lib/format";
 
+function ReciboPreview({
+  loja,
+  config,
+}: {
+  loja: { nome: string; cnpj: string; telefone: string; endereco: string };
+  config: {
+    logo_url: string;
+    cor_primaria: string;
+    rodape: string;
+    mostrar_cnpj: boolean;
+    mostrar_endereco: boolean;
+    mostrar_telefone: boolean;
+  };
+}) {
+  const cor = /^#[0-9a-fA-F]{6}$/.test(config.cor_primaria) ? config.cor_primaria : "#0ea5e9";
+  const itens = [
+    { nome: "Café especial 250g", qty: 2, unit: 28.9 },
+    { nome: "Bolo de cenoura — fatia", qty: 1, unit: 9.5 },
+  ];
+  const total = itens.reduce((s, i) => s + i.qty * i.unit, 0);
+  return (
+    <div className="rounded-lg border bg-white text-neutral-800 shadow-sm font-mono text-[12px] leading-snug p-5 max-w-[280px] mx-auto">
+      <div className="text-center mb-3" style={{ borderBottom: `2px solid ${cor}`, paddingBottom: 8 }}>
+        {config.logo_url && (
+          <img src={config.logo_url} alt="" className="h-12 mx-auto mb-2 object-contain" />
+        )}
+        <p className="font-semibold text-sm uppercase" style={{ color: cor }}>{loja.nome}</p>
+        {config.mostrar_cnpj && loja.cnpj && (
+          <p className="text-[10px] text-neutral-500 mt-0.5">CNPJ: {loja.cnpj}</p>
+        )}
+        {config.mostrar_endereco && loja.endereco && (
+          <p className="text-[10px] text-neutral-500">{loja.endereco}</p>
+        )}
+        {config.mostrar_telefone && loja.telefone && (
+          <p className="text-[10px] text-neutral-500">Tel: {loja.telefone}</p>
+        )}
+        <p className="text-[10px] text-neutral-400 mt-1">Comprovante não fiscal</p>
+      </div>
+      <div className="space-y-0.5 text-[11px] border-b border-dashed pb-2">
+        <div className="flex justify-between"><span>Data</span><span>{new Date().toLocaleDateString("pt-BR")}</span></div>
+        <div className="flex justify-between"><span>Venda</span><span>#A1B2C3D4</span></div>
+      </div>
+      <div className="pt-2">
+        <div className="flex justify-between font-semibold text-[11px] uppercase mb-1" style={{ color: cor }}>
+          <span>Item</span><span>Total</span>
+        </div>
+        <ul className="space-y-1.5">
+          {itens.map((it, i) => (
+            <li key={i}>
+              <div className="flex justify-between gap-2">
+                <span className="flex-1 truncate">{it.nome}</span>
+                <span className="shrink-0">{brl(it.qty * it.unit)}</span>
+              </div>
+              <div className="text-[10px] text-neutral-500">{it.qty} × {brl(it.unit)}</div>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="border-t border-dashed mt-2 pt-2">
+        <div className="flex justify-between text-sm font-semibold" style={{ color: cor }}>
+          <span>TOTAL</span><span>{brl(total)}</span>
+        </div>
+        <div className="flex justify-between text-[11px] text-neutral-600">
+          <span>Pagamento</span><span>PIX</span>
+        </div>
+      </div>
+      {config.rodape && (
+        <p className="text-center text-[10px] text-neutral-500 mt-4 whitespace-pre-wrap">{config.rodape}</p>
+      )}
+    </div>
+  );
+}
+
 type LojaForm = {
   nome: string;
   email: string;
