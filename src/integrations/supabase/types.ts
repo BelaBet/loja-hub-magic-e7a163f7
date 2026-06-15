@@ -232,12 +232,14 @@ export type Database = {
           cor_secundaria: string | null
           created_at: string
           email: string | null
+          endereco: string | null
           id: string
           logo_url: string | null
           nome: string
           onboarding_completo: boolean
           pagarme_recipient_id: string | null
           plano: string
+          recibo_config: Json
           telefone: string | null
           updated_at: string
         }
@@ -247,12 +249,14 @@ export type Database = {
           cor_secundaria?: string | null
           created_at?: string
           email?: string | null
+          endereco?: string | null
           id?: string
           logo_url?: string | null
           nome: string
           onboarding_completo?: boolean
           pagarme_recipient_id?: string | null
           plano?: string
+          recibo_config?: Json
           telefone?: string | null
           updated_at?: string
         }
@@ -262,12 +266,14 @@ export type Database = {
           cor_secundaria?: string | null
           created_at?: string
           email?: string | null
+          endereco?: string | null
           id?: string
           logo_url?: string | null
           nome?: string
           onboarding_completo?: boolean
           pagarme_recipient_id?: string | null
           plano?: string
+          recibo_config?: Json
           telefone?: string | null
           updated_at?: string
         }
