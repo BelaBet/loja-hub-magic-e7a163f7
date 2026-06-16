@@ -897,6 +897,21 @@ export type Database = {
     }
     Functions: {
       ensure_loja_for_current_user: { Args: never; Returns: string }
+      get_loja_fiscal_config_safe: {
+        Args: never
+        Returns: {
+          ambiente: string
+          has_certificado: boolean
+          has_csc: boolean
+          loja_id: string
+          regime_tributario: string
+          serie_nfce: string
+          serie_nfe: string
+          ultimo_numero_nfce: number
+          ultimo_numero_nfe: number
+          updated_at: string
+        }[]
+      }
       get_loja_id: { Args: never; Returns: string }
       get_loja_id_v2: { Args: never; Returns: string }
       get_loja_pagarme_recipient: { Args: never; Returns: string }
