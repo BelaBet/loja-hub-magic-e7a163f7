@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,9 @@ import { usePDVCart } from "@/components/pdv/usePDVCart";
 import { ReceiptDialog, type ReceiptData } from "@/components/pdv/ReceiptDialog";
 import type { PDVPayment, PDVProduct, ScanEvent } from "@/components/pdv/types";
 import { useCoupon } from "@/hooks/useCoupon";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { OfflineBanner, ConnectionDot } from "@/components/OfflineBanner";
+import { cacheProducts, findProductByEan, queuePendingSale } from "@/lib/offlineDb";
 
 type UIState =
   | { view: "idle" }
@@ -24,6 +27,7 @@ export default function PDV() {
   const { lojaAtivaId, lojaAtiva } = useLoja();
   const cart = usePDVCart();
   const coupon = useCoupon();
+  const { online, syncing, pendingCount, syncNow } = useOfflineSync();
   const [ui, setUi] = useState<UIState>({ view: "idle" });
   const [scanLoading, setScanLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -33,18 +37,84 @@ export default function PDV() {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const barcodeRef = useRef<BarcodeInputRef>(null);
 
+  // Sync product catalog to IndexedDB whenever we're online & have a loja.
+  useEffect(() => {
+    if (!online || !lojaAtivaId) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("produtos")
+        .select("id, ean, nome, preco_venda, categoria, unidade_medida, fotos, estoque(quantidade)")
+        .eq("loja_id", lojaAtivaId)
+        .eq("ativo", true);
+      if (cancelled || error || !data) return;
+      const rows = data.map((d: any) => ({
+        id: d.id,
+        loja_id: lojaAtivaId,
+        ean: d.ean,
+        nome: d.nome,
+        preco_venda: Number(d.preco_venda),
+        categoria: d.categoria,
+        unidade_medida: d.unidade_medida,
+        fotos: d.fotos,
+        estoque_qtd: Array.isArray(d.estoque)
+          ? d.estoque.reduce((s: number, e: any) => s + Number(e.quantidade ?? 0), 0)
+          : 0,
+        synced_at: Date.now(),
+      }));
+      await cacheProducts(lojaAtivaId, rows);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [online, lojaAtivaId]);
+
   const fetchProductByEan = async (ean: string): Promise<PDVProduct | null> => {
+    // Offline first: if no network, only check the local cache.
+    if (!online && lojaAtivaId) {
+      const local = await findProductByEan(lojaAtivaId, ean);
+      if (!local) return null;
+      return {
+        id: local.id,
+        ean: local.ean,
+        nome: local.nome,
+        preco_venda: local.preco_venda,
+        categoria: local.categoria,
+        unidade_medida: local.unidade_medida,
+        fotos: local.fotos,
+        estoque_qtd: local.estoque_qtd,
+      };
+    }
     const { data, error } = await supabase
       .from("produtos")
       .select("id, ean, nome, preco_venda, categoria, unidade_medida, fotos, estoque(quantidade)")
       .eq("ean", ean)
       .eq("ativo", true)
       .maybeSingle();
-    if (error) {
+    if (error || !data) {
+      // Network/db error — fall back to cache
+      if (lojaAtivaId) {
+        const local = await findProductByEan(lojaAtivaId, ean);
+        if (local) {
+          return {
+            id: local.id,
+            ean: local.ean,
+            nome: local.nome,
+            preco_venda: local.preco_venda,
+            categoria: local.categoria,
+            unidade_medida: local.unidade_medida,
+            fotos: local.fotos,
+            estoque_qtd: local.estoque_qtd,
+          };
+        }
+      }
+      if (error) console.error("[pdv] lookup:", error.message);
+      return null;
+    }
+    if (!data) {
       console.error("[pdv] lookup:", error.message);
       return null;
     }
-    if (!data) return null;
     const estoqueQtd = Array.isArray((data as any).estoque)
       ? (data as any).estoque.reduce((s: number, e: any) => s + Number(e.quantidade ?? 0), 0)
       : 0;
@@ -101,6 +171,50 @@ export default function PDV() {
     setSaving(true);
     const discount = coupon.appliedCoupon?.discount_amount ?? 0;
     const finalTotal = Math.max(0, cart.total - discount);
+
+    // OFFLINE PATH — queue the sale in IndexedDB and surface the receipt.
+    if (!online) {
+      try {
+        const localUuid =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        await queuePendingSale({
+          local_uuid: localUuid,
+          loja_id: lojaAtivaId,
+          total: finalTotal,
+          forma_pagamento: payment,
+          coupon_code: coupon.appliedCoupon?.coupon.code ?? null,
+          coupon_discount: discount,
+          items: cart.items.map((i) => ({
+            produto_id: i.product.id,
+            quantidade: i.qty,
+            preco_unit: i.unit_price,
+            desconto: 0,
+          })),
+        });
+        toast.success("Venda salva offline — será sincronizada ao reconectar");
+        setReceipt({
+          venda_id: localUuid,
+          items: cart.items,
+          total: finalTotal,
+          payment,
+          date: new Date(),
+          loja_nome: lojaAtiva?.loja?.nome,
+        });
+        setReceiptOpen(true);
+        cart.clear();
+        coupon.removeCoupon();
+        setUi({ view: "idle" });
+      } catch (e: any) {
+        console.error(e);
+        toast.error("Falha ao salvar venda offline: " + (e?.message ?? ""));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     try {
       const { data: venda, error: vErr } = await supabase
         .from("vendas")
@@ -156,11 +270,22 @@ export default function PDV() {
     <AppLayout>
       <div className="max-w-5xl mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold">PDV — Leitor de código de barras</h1>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold">PDV — Leitor de código de barras</h1>
+            <ConnectionDot online={online} />
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             Aponte o leitor USB/Bluetooth para adicionar produtos ao carrinho
           </p>
         </div>
+
+        <OfflineBanner
+          online={online}
+          pendingCount={pendingCount}
+          syncing={syncing}
+          onSync={syncNow}
+          className="mb-4"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
           <div className="space-y-4">
