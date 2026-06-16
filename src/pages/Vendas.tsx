@@ -25,6 +25,8 @@ import { VendaSucessoModal, type VendaConcluida } from "@/components/VendaSucess
 import { PagarmeCheckoutModal, type PagarmeMethod } from "@/components/PagarmeCheckoutModal";
 import { PDVMaquininhaModal } from "@/components/PDVMaquininhaModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useOfflineSync } from "@/hooks/useOfflineSync";
+import { OfflineBanner, ConnectionDot } from "@/components/OfflineBanner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,6 +72,7 @@ const PAGAMENTOS: { id: Pagamento; label: string; icon: typeof Banknote }[] = [
 ];
 
 const Vendas = () => {
+  const { online, syncing, pendingCount, syncNow } = useOfflineSync();
   const searchRef = useRef<HTMLInputElement>(null);
   const [busca, setBusca] = useState("");
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -550,13 +553,24 @@ const Vendas = () => {
               Nova venda
             </h1>
           </div>
-          <Link to="/vendas/historico">
-            <Button variant="outline" className="h-10 min-h-[44px]">
-              <History className="h-4 w-4 sm:mr-1" />
-              <span className="hidden sm:inline">Histórico</span>
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <ConnectionDot online={online} />
+            <Link to="/vendas/historico">
+              <Button variant="outline" className="h-10 min-h-[44px]">
+                <History className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Histórico</span>
+              </Button>
+            </Link>
+          </div>
         </header>
+
+        <OfflineBanner
+          online={online}
+          pendingCount={pendingCount}
+          syncing={syncing}
+          onSync={syncNow}
+          className="mb-4"
+        />
 
         {/* Mobile tabs */}
         {isMobile && (
