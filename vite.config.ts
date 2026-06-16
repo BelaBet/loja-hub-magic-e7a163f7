@@ -42,9 +42,8 @@ export default defineConfig({
             options: { cacheName: "html-pages", networkTimeoutSeconds: 3 },
           },
           {
-            urlPattern: ({ url }) =>
-              url.origin === self.location.origin &&
-              /\.(?:js|css|woff2|png|svg|webp|ico)$/.test(url.pathname),
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /\.(?:js|css|woff2|png|svg|webp|ico)$/.test(url.pathname),
             handler: "CacheFirst",
             options: {
               cacheName: "static-assets",
