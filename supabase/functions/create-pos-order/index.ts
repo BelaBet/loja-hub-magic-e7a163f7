@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
       device_serial,
       payment_type,
       installments = 1,
-      seller_recipient_id,
       print_receipt = false,
       display_name,
     } = body ?? {};
@@ -129,6 +128,19 @@ Deno.serve(async (req) => {
     if (venda.loja_id !== maq.loja_id) {
       return json({ error: "Maquininha de outra loja" }, 403);
     }
+
+    // Resolve seller_recipient_id server-side from the loja that owns the venda.
+    // Never trust a client-supplied recipient ID — would allow funds diversion.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: lojaRow } = await admin
+      .from("lojas")
+      .select("pagarme_recipient_id")
+      .eq("id", venda.loja_id)
+      .maybeSingle();
+    const seller_recipient_id: string | null = lojaRow?.pagarme_recipient_id ?? null;
 
     // ── Split rules (se houver recipient) ────────────────────────────────────
     // PIX e débito sempre 1×, sem acréscimo de parcela.
@@ -188,10 +200,6 @@ Deno.serve(async (req) => {
     // ── Atualiza venda com dados de cobrança via service role ────────────────
     // (campos financeiros são protegidos pelo trigger vendas_protect_financial_fields;
     //  vendedores não podem alterá-los pelo JWT — apenas o backend pode)
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
     await admin
       .from("vendas")
       .update({
