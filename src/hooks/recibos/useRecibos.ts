@@ -223,11 +223,10 @@ export function useMarcarEnviado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, canal }: { id: string; canal: "whatsapp" | "email" }) => {
-      const field = canal === "whatsapp" ? "enviado_whatsapp_em" : "enviado_email_em";
-      const { error } = await supabase
-        .from("recibos")
-        .update({ [field]: new Date().toISOString() })
-        .eq("id", id);
+      const now = new Date().toISOString();
+      const patch =
+        canal === "whatsapp" ? { enviado_whatsapp_em: now } : { enviado_email_em: now };
+      const { error } = await supabase.from("recibos").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
