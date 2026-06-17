@@ -38,13 +38,27 @@ Deno.serve(async (req) => {
     const { venda_id } = (await req.json()) ?? {};
     if (!venda_id) return json({ error: "venda_id obrigatório" }, 400);
 
-    // RLS já garante que o usuário só vê vendas da sua loja
-    const { data: venda, error: vErr } = await supabase
+    // Ownership check via RLS (user-scoped client) — only returns venda if user
+    // belongs to the loja.
+    const { data: vendaOwn, error: vErr } = await supabase
+      .from("vendas")
+      .select("id, loja_id")
+      .eq("id", venda_id)
+      .maybeSingle();
+    if (vErr || !vendaOwn) return json({ error: "Venda não encontrada" }, 404);
+
+    // Sensitive financial fields (split_rules) require service-role access
+    // because column-level grants restrict them from authenticated.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: venda, error: vErr2 } = await admin
       .from("vendas")
       .select("id, pagarme_order_id, pagamento_status, status, device_serial, split_rules, base_amount, payment_channel")
       .eq("id", venda_id)
       .maybeSingle();
-    if (vErr || !venda) return json({ error: "Venda não encontrada" }, 404);
+    if (vErr2 || !venda) return json({ error: "Venda não encontrada" }, 404);
     if (!venda.pagarme_order_id) {
       return json({ error: "Venda sem pedido no Pagar.me" }, 400);
     }
@@ -138,10 +152,6 @@ Deno.serve(async (req) => {
     }
 
     // Atualiza via service role (campos financeiros são protegidos pelo trigger)
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
     const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (chargeId) updates.pagarme_charge_id = chargeId;
     if (novoPagamento) updates.pagamento_status = novoPagamento;
