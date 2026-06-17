@@ -13,11 +13,11 @@ export function buildWhatsAppMessage(
 ) {
   const link = publicReciboUrl(recibo.id);
   return template
-    .replaceAll("{nome}", recibo.cliente_nome || "")
-    .replaceAll("{numero}", recibo.numero_formatado)
-    .replaceAll("{total}", brl(recibo.total))
-    .replaceAll("{forma}", FORMA_LABEL[recibo.forma_pagamento] ?? recibo.forma_pagamento)
-    .replaceAll("{link}", link);
+    .replace(/\{nome\}/g, recibo.cliente_nome || "")
+    .replace(/\{numero\}/g, recibo.numero_formatado)
+    .replace(/\{total\}/g, brl(recibo.total))
+    .replace(/\{forma\}/g, FORMA_LABEL[recibo.forma_pagamento] ?? recibo.forma_pagamento)
+    .replace(/\{link\}/g, link);
 }
 
 export function openWhatsApp(
