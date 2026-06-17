@@ -26,6 +26,11 @@ import TestePagamento from "./pages/TestePagamento.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
 import Perfil from "./pages/Perfil.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import RecibosLista from "./pages/RecibosLista.tsx";
+import RecibosNovo from "./pages/RecibosNovo.tsx";
+import RecibosPreview from "./pages/RecibosPreview.tsx";
+import RecibosTemplates from "./pages/RecibosTemplates.tsx";
+import ReciboPublico from "./pages/ReciboPublico.tsx";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +65,11 @@ const App = () => (
           <Route path="/admin/teste-pagamento" element={<TestePagamento />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/dashboard/recibos" element={<RecibosLista />} />
+          <Route path="/dashboard/recibos/novo" element={<RecibosNovo />} />
+          <Route path="/dashboard/recibos/templates" element={<RecibosTemplates />} />
+          <Route path="/dashboard/recibos/:id" element={<RecibosPreview />} />
+          <Route path="/recibo/:id" element={<ReciboPublico />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

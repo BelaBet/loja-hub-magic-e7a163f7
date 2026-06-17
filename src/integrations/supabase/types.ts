@@ -627,6 +627,186 @@ export type Database = {
         }
         Relationships: []
       }
+      recibos: {
+        Row: {
+          ano: number
+          cancelado_em: string | null
+          cliente_cpf: string | null
+          cliente_email: string | null
+          cliente_nome: string
+          cliente_whatsapp: string | null
+          created_at: string
+          created_by: string | null
+          desconto: number
+          enviado_email_em: string | null
+          enviado_whatsapp_em: string | null
+          forma_pagamento: string
+          id: string
+          itens: Json
+          loja_id: string
+          motivo_cancelamento: string | null
+          numero_formatado: string
+          numero_seq: number
+          observacao: string | null
+          status: string
+          subtotal: number
+          total: number
+          troco: number | null
+          updated_at: string
+          valor_recebido: number | null
+          visualizacoes: number
+          visualizado_em: string | null
+        }
+        Insert: {
+          ano: number
+          cancelado_em?: string | null
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome: string
+          cliente_whatsapp?: string | null
+          created_at?: string
+          created_by?: string | null
+          desconto?: number
+          enviado_email_em?: string | null
+          enviado_whatsapp_em?: string | null
+          forma_pagamento?: string
+          id?: string
+          itens?: Json
+          loja_id: string
+          motivo_cancelamento?: string | null
+          numero_formatado: string
+          numero_seq: number
+          observacao?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          troco?: number | null
+          updated_at?: string
+          valor_recebido?: number | null
+          visualizacoes?: number
+          visualizado_em?: string | null
+        }
+        Update: {
+          ano?: number
+          cancelado_em?: string | null
+          cliente_cpf?: string | null
+          cliente_email?: string | null
+          cliente_nome?: string
+          cliente_whatsapp?: string | null
+          created_at?: string
+          created_by?: string | null
+          desconto?: number
+          enviado_email_em?: string | null
+          enviado_whatsapp_em?: string | null
+          forma_pagamento?: string
+          id?: string
+          itens?: Json
+          loja_id?: string
+          motivo_cancelamento?: string | null
+          numero_formatado?: string
+          numero_seq?: number
+          observacao?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          troco?: number | null
+          updated_at?: string
+          valor_recebido?: number | null
+          visualizacoes?: number
+          visualizado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas_publico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recibos_config: {
+        Row: {
+          created_at: string
+          envio_automatico_whatsapp: boolean
+          loja_cnpj: string | null
+          loja_endereco: string | null
+          loja_id: string
+          loja_logo_url: string | null
+          loja_nome_exibicao: string | null
+          loja_telefone: string | null
+          mensagem_rodape: string
+          mostrar_cnpj: boolean
+          mostrar_cpf_cliente: boolean
+          mostrar_endereco: boolean
+          mostrar_logo: boolean
+          mostrar_troco: boolean
+          template_ativo: string
+          template_whatsapp: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          envio_automatico_whatsapp?: boolean
+          loja_cnpj?: string | null
+          loja_endereco?: string | null
+          loja_id: string
+          loja_logo_url?: string | null
+          loja_nome_exibicao?: string | null
+          loja_telefone?: string | null
+          mensagem_rodape?: string
+          mostrar_cnpj?: boolean
+          mostrar_cpf_cliente?: boolean
+          mostrar_endereco?: boolean
+          mostrar_logo?: boolean
+          mostrar_troco?: boolean
+          template_ativo?: string
+          template_whatsapp?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          envio_automatico_whatsapp?: boolean
+          loja_cnpj?: string | null
+          loja_endereco?: string | null
+          loja_id?: string
+          loja_logo_url?: string | null
+          loja_nome_exibicao?: string | null
+          loja_telefone?: string | null
+          mensagem_rodape?: string
+          mostrar_cnpj?: boolean
+          mostrar_cpf_cliente?: boolean
+          mostrar_endereco?: boolean
+          mostrar_logo?: boolean
+          mostrar_troco?: boolean
+          template_ativo?: string
+          template_whatsapp?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recibos_config_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: true
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recibos_config_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: true
+            referencedRelation: "lojas_publico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -927,6 +1107,10 @@ export type Database = {
         | { Args: { _role: string }; Returns: boolean }
       increment_coupon_usage: {
         Args: { p_coupon_id: string }
+        Returns: undefined
+      }
+      incrementar_visualizacao_recibo: {
+        Args: { p_id: string }
         Returns: undefined
       }
       is_super_admin: { Args: never; Returns: boolean }
