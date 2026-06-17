@@ -80,7 +80,6 @@ type Body = {
   };
   items?: Array<{ amount: number; description: string; quantity: number; code?: string }>;
   card?: CardData;
-  seller_recipient_id?: string;
   pass_surcharge_to_customer?: boolean;
 };
 
@@ -120,9 +119,38 @@ Deno.serve(async (req) => {
       customer,
       items,
       card,
-      seller_recipient_id,
       pass_surcharge_to_customer = true,
     } = body;
+
+    // Resolve seller_recipient_id server-side from the user's active loja
+    // (NEVER trust a client-supplied recipient ID — would allow funds diversion).
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const appMeta = (claimsData.claims as { app_metadata?: { active_loja_id?: string } })
+      .app_metadata;
+    let lojaId = appMeta?.active_loja_id ?? null;
+    if (!lojaId) {
+      const userId = claimsData.claims.sub as string;
+      const { data: lu } = await admin
+        .from("loja_usuarios")
+        .select("loja_id, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      lojaId = lu?.loja_id ?? null;
+    }
+    let seller_recipient_id: string | null = null;
+    if (lojaId) {
+      const { data: loja } = await admin
+        .from("lojas")
+        .select("pagarme_recipient_id")
+        .eq("id", lojaId)
+        .maybeSingle();
+      seller_recipient_id = loja?.pagarme_recipient_id ?? null;
+    }
 
     if (
       !payment_method ||
