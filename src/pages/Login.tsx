@@ -114,7 +114,7 @@ const Login = () => {
       <main className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-surface">
         <Card className="w-full max-w-md p-8 shadow-soft-md border-border">
           <div className="mb-6">
-            <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">Acesso institucional</span>
+            <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">ACESSO&nbsp;</span>
             <h2 className="font-display text-3xl font-bold mt-2 tracking-tight">Bem-vindo</h2>
           </div>
 
