@@ -244,7 +244,7 @@ export function useReciboPublico(id: string | undefined) {
       const { data, error } = await supabase.rpc("get_recibo_publico", { p_id: id! });
       if (error) throw error;
       if (!data) return null;
-      const payload = data as { recibo: Record<string, unknown> | null; config: ReciboConfig | null };
+      const payload = data as unknown as { recibo: Record<string, unknown> | null; config: ReciboConfig | null };
       if (!payload.recibo) return null;
       const recibo = mapRecibo(payload.recibo);
       const config: ReciboConfig = payload.config ?? DEFAULT_CONFIG(recibo.loja_id);
