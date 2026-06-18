@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveModal } from "@/components/ResponsiveModal";
 import { brl } from "@/lib/format";
-import { Search, Package, MessageCircle, Store } from "lucide-react";
+import { Search, Package, MessageCircle, Store, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import { useCatalogCart } from "@/hooks/useCatalogCart";
+import { QuantitySelector } from "@/components/catalogo/QuantitySelector";
+import { CartDrawer } from "@/components/catalogo/CartDrawer";
+import { CheckoutForm, type CheckoutData } from "@/components/catalogo/CheckoutForm";
+import { buildOrderWhatsAppMessage } from "@/lib/buildOrderWhatsAppMessage";
+import { whatsappDigits } from "@/components/recibos/masks";
 
 type ProdutoPub = {
   id: string;
@@ -40,6 +47,10 @@ const CatalogoPublico = () => {
   const [erro, setErro] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [preview, setPreview] = useState<ProdutoPub | null>(null);
+  const [qtyByProduct, setQtyByProduct] = useState<Record<string, number>>({});
+  const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const cart = useCatalogCart(lojaId);
 
   useEffect(() => {
     if (!lojaId) return;
@@ -80,6 +91,41 @@ const CatalogoPublico = () => {
     return `https://wa.me/${tel}?text=${encodeURIComponent(texto)}`;
   };
 
+  const setQty = (id: string, v: number) =>
+    setQtyByProduct((prev) => ({ ...prev, [id]: v }));
+
+  const handleAdd = (p: ProdutoPub) => {
+    const estoque = p.estoque?.[0]?.quantidade ?? null;
+    const qty = qtyByProduct[p.id] ?? 1;
+    cart.addItem(
+      {
+        id: p.id,
+        nome: p.nome,
+        preco_venda: p.preco_venda,
+        foto: p.fotos?.[0] ?? null,
+        estoque,
+      },
+      qty,
+    );
+    setQty(p.id, 1);
+    toast.success("Produto adicionado!");
+  };
+
+  const handleConfirmCheckout = (data: CheckoutData) => {
+    if (!loja) return;
+    const tel = whatsappDigits(loja.telefone);
+    if (!tel) {
+      toast.error("Esta loja não tem WhatsApp configurado.");
+      return;
+    }
+    const msg = buildOrderWhatsAppMessage(loja.nome, cart.items, cart.totalValue, data);
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+    cart.clear();
+    setCheckoutOpen(false);
+    setCartOpen(false);
+    toast.success("Pedido enviado pelo WhatsApp!");
+  };
+
   if (erro) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
@@ -118,6 +164,22 @@ const CatalogoPublico = () => {
               Catálogo
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setCartOpen(true)}
+            className="relative h-11 w-11 rounded-lg bg-white/15 hover:bg-white/25 transition-colors flex items-center justify-center text-white"
+            aria-label="Abrir carrinho"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cart.totalItems > 0 && (
+              <span
+                className="num absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold flex items-center justify-center text-white shadow-soft-md"
+                style={{ background: "var(--brand-secondary)" }}
+              >
+                {cart.totalItems}
+              </span>
+            )}
+          </button>
         </div>
         <div className="max-w-6xl mx-auto px-4 pb-4">
           <div className="relative">
@@ -154,14 +216,18 @@ const CatalogoPublico = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             {filtered.map((p) => {
               const foto = p.fotos?.[0];
-              const semEstoque = (p.estoque?.[0]?.quantidade ?? 0) <= 0;
+              const estoqueQtd = p.estoque?.[0]?.quantidade ?? null;
+              const semEstoque = estoqueQtd !== null && estoqueQtd <= 0;
+              const qty = qtyByProduct[p.id] ?? 1;
               return (
                 <Card
                   key={p.id}
-                  className="p-0 overflow-hidden cursor-pointer hover:shadow-soft-md transition-shadow"
-                  onClick={() => setPreview(p)}
+                  className="p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col"
                 >
-                  <div className="relative aspect-square bg-muted">
+                  <div
+                    className="relative aspect-square bg-muted cursor-pointer"
+                    onClick={() => setPreview(p)}
+                  >
                     {foto ? (
                       <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                     ) : (
@@ -175,8 +241,13 @@ const CatalogoPublico = () => {
                       </Badge>
                     )}
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-display font-semibold leading-tight line-clamp-2">{p.nome}</h3>
+                  <div className="p-4 flex-1 flex flex-col">
+                    <h3
+                      className="font-display font-semibold leading-tight line-clamp-2 cursor-pointer"
+                      onClick={() => setPreview(p)}
+                    >
+                      {p.nome}
+                    </h3>
                     {p.categoria && (
                       <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                         {p.categoria}
@@ -187,6 +258,37 @@ const CatalogoPublico = () => {
                       style={{ color: "var(--brand-primary)" }}
                     >
                       {brl(p.preco_venda)}
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2">
+                      {semEstoque ? (
+                        <Button disabled className="w-full h-11">
+                          Esgotado
+                        </Button>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <QuantitySelector
+                              value={qty}
+                              onChange={(v) => setQty(p.id, v)}
+                              max={estoqueQtd}
+                              size="sm"
+                            />
+                            {estoqueQtd !== null && qty >= estoqueQtd && (
+                              <span className="mono text-[10px] text-muted-foreground">
+                                Máx: {estoqueQtd}
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            className="w-full h-11 text-white hover:opacity-90"
+                            style={{ background: "var(--brand-primary)" }}
+                            onClick={() => handleAdd(p)}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            Adicionar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -246,6 +348,27 @@ const CatalogoPublico = () => {
       <footer className="py-8 text-center mono text-[10px] uppercase tracking-widest text-muted-foreground">
         Catálogo digital
       </footer>
+
+      <CartDrawer
+        open={cartOpen}
+        onOpenChange={setCartOpen}
+        items={cart.items}
+        total={cart.totalValue}
+        onUpdateQty={cart.updateQty}
+        onRemove={cart.removeItem}
+        onCheckout={() => {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }}
+        brandColor={loja?.cor_primaria || "#3F3C7A"}
+      />
+
+      <CheckoutForm
+        open={checkoutOpen}
+        onOpenChange={setCheckoutOpen}
+        onConfirm={handleConfirmCheckout}
+        brandColor={loja?.cor_secundaria || loja?.cor_primaria || "#D8A14A"}
+      />
     </div>
   );
 };
