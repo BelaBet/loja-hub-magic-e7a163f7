@@ -88,11 +88,11 @@ const Login = () => {
         <BrandLogo width={140} height={100} className="relative" />
         <div className="relative max-w-md">
           <h1 className="font-display text-4xl lg:text-5xl font-bold leading-[1.05] tracking-tight">
-            Sua instituição, <br />
-            sob controle.
+            Seu negócio sob controle, <br />
+            onde você estiver.
           </h1>
           <p className="mt-5 text-primary-foreground/80 text-base leading-relaxed">
-            Plataforma multi-instituições com catálogo, estoque, pedidos e personalização visual completa.
+            Sua loja, sua marca, seu controle. Catálogo, estoque, pedidos e personalização completa em uma única plataforma.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
