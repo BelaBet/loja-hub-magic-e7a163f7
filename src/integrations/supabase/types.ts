@@ -1095,6 +1095,7 @@ export type Database = {
       get_loja_id: { Args: never; Returns: string }
       get_loja_id_v2: { Args: never; Returns: string }
       get_loja_pagarme_recipient: { Args: never; Returns: string }
+      get_recibo_publico: { Args: { p_id: string }; Returns: Json }
       has_app_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

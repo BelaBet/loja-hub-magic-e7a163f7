@@ -241,22 +241,13 @@ export function useReciboPublico(id: string | undefined) {
     queryKey: ["recibo-publico", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data: recRow, error: e1 } = await supabase
-        .from("recibos")
-        .select("*")
-        .eq("id", id!)
-        .maybeSingle();
-      if (e1) throw e1;
-      if (!recRow) return null;
-      const recibo = mapRecibo(recRow as Record<string, unknown>);
-      const { data: cfgRow } = await supabase
-        .from("recibos_config")
-        .select("*")
-        .eq("loja_id", recibo.loja_id)
-        .maybeSingle();
-      const config: ReciboConfig = cfgRow
-        ? (cfgRow as unknown as ReciboConfig)
-        : DEFAULT_CONFIG(recibo.loja_id);
+      const { data, error } = await supabase.rpc("get_recibo_publico", { p_id: id! });
+      if (error) throw error;
+      if (!data) return null;
+      const payload = data as unknown as { recibo: Record<string, unknown> | null; config: ReciboConfig | null };
+      if (!payload.recibo) return null;
+      const recibo = mapRecibo(payload.recibo);
+      const config: ReciboConfig = payload.config ?? DEFAULT_CONFIG(recibo.loja_id);
       void supabase.rpc("incrementar_visualizacao_recibo", { p_id: id! });
       return { recibo, config };
     },
