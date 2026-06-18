@@ -92,22 +92,22 @@ const Login = () => {
             onde você estiver.
           </h1>
           <p className="mt-5 text-primary-foreground/80 text-base leading-relaxed">
-            Sua loja, sua marca, seu controle. Catálogo, estoque, pedidos e personalização completa em uma única plataforma.
+            Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { k: "98%", l: "uptime" },
-              { k: "+12k", l: "produtos" },
-              { k: "2 min", l: "setup" },
-            ].map((s) => (
-              <div key={s.l}>
+              { k: "IA Gratuita", l: "\n" },
+              { k: "Loja Online\u00a0\nGratuita", l: "\n" },
+              { k: "\n", l: "\n" },
+            ].map((s, idx) => (
+              <div key={idx}>
                 <div className="num text-3xl font-bold">{s.k}</div>
                 <div className="mono text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-1">{s.l}</div>
               </div>
             ))}
           </div>
         </div>
-        <div className="relative mono text-xs text-primary-foreground/50">© 2026</div>
+        <div className="relative mono text-xs text-primary-foreground/50">{"\n"}</div>
       </aside>
 
       {/* Auth form */}
