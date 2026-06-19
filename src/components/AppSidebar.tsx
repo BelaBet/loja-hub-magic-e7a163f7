@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, LogOut, ShoppingCart, History, Boxes, FileText, Users, Shield, Settings, Scan, Ticket, User, Receipt } from "lucide-react";
+import { LayoutDashboard, Package, LogOut, ShoppingCart, History, Boxes, FileText, Users, Shield, Settings, Scan, Ticket, User, Receipt, Network } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -39,11 +39,17 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [hasNetwork, setHasNetwork] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.rpc("is_super_admin");
       if (data === true) setIsSuperAdmin(true);
+      const { data: insts } = await (supabase as any)
+        .from("institutions")
+        .select("id")
+        .limit(1);
+      if (insts && insts.length > 0) setHasNetwork(true);
     })();
   }, []);
 
@@ -132,6 +138,34 @@ export function AppSidebar() {
                     </SidebarMenuButton>
                   )}
                 </SidebarMenuItem>
+              )}
+              {hasNetwork && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/rede"
+                        className="rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-sidebar-accent text-primary font-semibold"
+                      >
+                        <Network className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>Rede</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to="/rede/configuracoes"
+                        className="rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+                        activeClassName="bg-sidebar-accent text-primary font-semibold"
+                      >
+                        <Settings className="h-4 w-4 shrink-0" />
+                        {!collapsed && <span>Config. da rede</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
