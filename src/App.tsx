@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LojaProvider } from "@/contexts/LojaContext";
+import { InstitutionProvider } from "@/contexts/InstitutionContext";
 import Login from "./pages/Login.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import Onboarding from "./pages/Onboarding.tsx";
@@ -31,6 +32,8 @@ import RecibosNovo from "./pages/RecibosNovo.tsx";
 import RecibosPreview from "./pages/RecibosPreview.tsx";
 import RecibosTemplates from "./pages/RecibosTemplates.tsx";
 import ReciboPublico from "./pages/ReciboPublico.tsx";
+import RedeDashboard from "./pages/RedeDashboard.tsx";
+import RedeConfiguracoes from "./pages/RedeConfiguracoes.tsx";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <LojaProvider>
+        <InstitutionProvider>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
@@ -70,9 +74,12 @@ const App = () => (
           <Route path="/dashboard/recibos/templates" element={<RecibosTemplates />} />
           <Route path="/dashboard/recibos/:id" element={<RecibosPreview />} />
           <Route path="/recibo/:id" element={<ReciboPublico />} />
+          <Route path="/rede" element={<RedeDashboard />} />
+          <Route path="/rede/configuracoes" element={<RedeConfiguracoes />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </InstitutionProvider>
         </LojaProvider>
       </BrowserRouter>
     </TooltipProvider>
