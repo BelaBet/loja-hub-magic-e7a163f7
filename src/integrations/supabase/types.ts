@@ -186,6 +186,65 @@ export type Database = {
           },
         ]
       }
+      institution_usuarios: {
+        Row: {
+          created_at: string
+          id: string
+          institution_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          institution_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          institution_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_usuarios_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institutions: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          id: string
+          nome: string
+          owner_user_id: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          owner_user_id: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          owner_user_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loja_usuarios: {
         Row: {
           created_at: string
@@ -234,6 +293,7 @@ export type Database = {
           email: string | null
           endereco: string | null
           id: string
+          institution_id: string | null
           logo_url: string | null
           nome: string
           onboarding_completo: boolean
@@ -251,6 +311,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          institution_id?: string | null
           logo_url?: string | null
           nome: string
           onboarding_completo?: boolean
@@ -268,6 +329,7 @@ export type Database = {
           email?: string | null
           endereco?: string | null
           id?: string
+          institution_id?: string | null
           logo_url?: string | null
           nome?: string
           onboarding_completo?: boolean
@@ -277,7 +339,15 @@ export type Database = {
           telefone?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lojas_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lojas_config_fiscal: {
         Row: {
@@ -1096,6 +1166,7 @@ export type Database = {
       get_loja_id_v2: { Args: never; Returns: string }
       get_loja_pagarme_recipient: { Args: never; Returns: string }
       get_recibo_publico: { Args: { p_id: string }; Returns: Json }
+      get_user_institutions: { Args: never; Returns: string[] }
       has_app_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1103,6 +1174,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_institution_access: { Args: { _inst: string }; Returns: boolean }
+      has_loja_network_access: { Args: { _loja_id: string }; Returns: boolean }
       has_loja_role:
         | { Args: { _loja_id: string; _role: string }; Returns: boolean }
         | { Args: { _role: string }; Returns: boolean }
@@ -1114,7 +1187,12 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      is_institution_owner: { Args: { _inst: string }; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      network_dashboard: {
+        Args: { _from: string; _inst: string; _to: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "super_admin"
