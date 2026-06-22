@@ -159,4 +159,166 @@ All colors MUST be HSL.
     size: 80mm auto;
     margin: 4mm;
   }
+  @tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PayTicket — Design system. All colors, gradients, fonts, etc should be defined here.
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Ankor Tech — Light theme (navy + teal blue + green) */
+    --background: 0 0% 100%;
+    --foreground: 214 50% 12%;
+
+    --surface: 214 40% 98%;
+    --surface-foreground: 214 50% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 214 50% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 214 50% 12%;
+
+    /* Navy profundo da marca (~#0F1B2D) */
+    --primary: 214 50% 14%;
+    --primary-foreground: 0 0% 100%;
+    --primary-soft: 214 50% 95%;
+
+    --secondary: 214 30% 97%;
+    --secondary-foreground: 214 50% 12%;
+
+    --muted: 214 20% 96%;
+    --muted-foreground: 214 12% 40%;
+
+    /* Azul/verde da marca (~#3BB4E5 / ~#3BD68A) */
+    --accent: 197 76% 56%;
+    --accent-foreground: 214 50% 12%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 67% 40%;
+    --warning: 36 90% 50%;
+
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 214 50% 14%;
+
+    --radius: 0.75rem;
+
+    --shadow-sm: 0 1px 2px 0 hsl(214 50% 12% / 0.04);
+    --shadow-md: 0 4px 16px -4px hsl(214 50% 12% / 0.06), 0 2px 4px -2px hsl(214 50% 12% / 0.04);
+    --shadow-lg: 0 12px 40px -8px hsl(214 50% 12% / 0.10);
+
+    --sidebar-background: 214 40% 98%;
+    --sidebar-foreground: 214 50% 12%;
+    --sidebar-primary: 214 50% 14%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100%;
+    --sidebar-accent-foreground: 197 76% 45%;
+    --sidebar-border: 214 20% 90%;
+    --sidebar-ring: 197 76% 56%;
+  }
+
+  .dark {
+    /* Ankor Tech — Dark theme */
+    --background: 214 50% 8%;
+    --foreground: 210 20% 96%;
+
+    --surface: 214 45% 11%;
+    --surface-foreground: 210 20% 96%;
+
+    --card: 214 45% 11%;
+    --card-foreground: 210 20% 96%;
+
+    --popover: 214 45% 11%;
+    --popover-foreground: 210 20% 96%;
+
+    --primary: 197 76% 56%;
+    --primary-foreground: 214 50% 8%;
+    --primary-soft: 214 40% 16%;
+
+    --secondary: 214 35% 16%;
+    --secondary-foreground: 210 20% 96%;
+
+    --muted: 214 30% 16%;
+    --muted-foreground: 214 12% 65%;
+
+    --accent: 152 67% 53%;
+    --accent-foreground: 214 50% 8%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 30% 20%;
+    --input: 214 30% 20%;
+    --ring: 197 76% 56%;
+
+    --sidebar-background: 214 50% 9%;
+    --sidebar-foreground: 210 20% 96%;
+    --sidebar-primary: 197 76% 56%;
+    --sidebar-primary-foreground: 214 50% 8%;
+    --sidebar-accent: 214 40% 13%;
+    --sidebar-accent-foreground: 152 67% 60%;
+    --sidebar-border: 214 30% 20%;
+    --sidebar-ring: 197 76% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'ss01', 'cv11';
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Syne', 'DM Sans', sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .font-mono, code, kbd, samp {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-feature-settings: 'zero';
+  }
+}
+
+@layer components {
+  .num {
+    font-family: 'Syne', sans-serif;
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.03em;
+  }
+  .mono {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #pdv-print-receipt,
+  #pdv-print-receipt * {
+    visibility: visible !important;
+  }
+  #pdv-print-receipt {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    color: #000;
+  }
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+}
 }
