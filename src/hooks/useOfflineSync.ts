@@ -62,7 +62,7 @@ export function useOfflineSync() {
               // removemos a venda órfã (sem itens) e deixamos um alerta para
               // a loja revisar manualmente e decidir como tratar o estoque.
               await supabase.from("vendas").delete().eq("id", venda.id);
-              await (supabase as any).from("alertas_operacionais").insert({
+              await (supabase.from as any)("alertas_operacionais").insert({
                 loja_id: sale.loja_id,
                 tipo: "venda_offline_bloqueada_estoque",
                 titulo: "Venda offline não sincronizada — estoque insuficiente",
@@ -96,7 +96,7 @@ export function useOfflineSync() {
               );
               const row = Array.isArray(result) ? result[0] : result;
               if (row?.estourou_limite) {
-                await (supabase as any).from("alertas_operacionais").insert({
+                await (supabase.from as any)("alertas_operacionais").insert({
                   loja_id: sale.loja_id,
                   tipo: "cupom_limite_excedido_offline",
                   titulo: `Cupom "${sale.coupon_code}" excedeu o limite de uso`,
