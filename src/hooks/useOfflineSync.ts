@@ -56,7 +56,56 @@ export function useOfflineSync() {
               desconto: i.desconto,
             }));
             const { error: iErr } = await supabase.from("venda_itens").insert(rows);
-            if (iErr) throw iErr;
+            if (iErr) {
+              // Trigger de estoque insuficiente bloqueou o sync. A venda já
+              // ocorreu de fato (sem internet), então não basta descartar:
+              // removemos a venda órfã (sem itens) e deixamos um alerta para
+              // a loja revisar manualmente e decidir como tratar o estoque.
+              await supabase.from("vendas").delete().eq("id", venda.id);
+              await supabase.from("alertas_operacionais").insert({
+                loja_id: sale.loja_id,
+                tipo: "venda_offline_bloqueada_estoque",
+                titulo: "Venda offline não sincronizada — estoque insuficiente",
+                detalhe:
+                  `Uma venda feita offline (total R$ ${sale.total.toFixed(2).replace(".", ",")}) não pôde ser sincronizada ` +
+                  `porque o estoque de um dos produtos ficou insuficiente entre a venda e a sincronização. ` +
+                  `A venda já ocorreu de fato — revise o estoque e registre-a manualmente. ` +
+                  `Detalhe técnico: ${iErr.message}`,
+                referencia_id: null,
+              });
+              throw iErr;
+            }
+          }
+
+          // Venda offline com cupom: a venda já ocorreu de fato sem internet,
+          // então não pode ser bloqueada no sync. Ainda assim, o uso precisa
+          // ser contabilizado — e, se isso ultrapassar max_uses, registramos
+          // um alerta para a loja revisar (ver useCoupon / increment_coupon_usage
+          // para o fluxo online, que bloqueia antes de a venda ser criada).
+          if (sale.coupon_code) {
+            const { data: cupomRow } = await supabase
+              .from("cupons")
+              .select("id")
+              .eq("code", sale.coupon_code)
+              .eq("loja_id", sale.loja_id)
+              .maybeSingle();
+            if (cupomRow?.id) {
+              const { data: result } = await supabase.rpc(
+                "increment_coupon_usage_forcado" as any,
+                { p_coupon_id: cupomRow.id },
+              );
+              const row = Array.isArray(result) ? result[0] : result;
+              if (row?.estourou_limite) {
+                await supabase.from("alertas_operacionais").insert({
+                  loja_id: sale.loja_id,
+                  tipo: "cupom_limite_excedido_offline",
+                  titulo: `Cupom "${sale.coupon_code}" excedeu o limite de uso`,
+                  detalhe:
+                    "Uma venda feita offline usou este cupom depois que ele já havia atingido o limite máximo de usos. A venda foi sincronizada normalmente pois já havia ocorrido de fato.",
+                  referencia_id: venda.id,
+                });
+              }
+            }
           }
 
           await offlineDb.pendingSales.update(sale.id, { status: "synced" });

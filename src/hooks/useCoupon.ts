@@ -69,9 +69,13 @@ export function useCoupon() {
     setError(null);
   }, []);
 
-  const useCouponUsage = useCallback(async (couponId: string) => {
-    const { error } = await supabase.rpc("increment_coupon_usage" as any, { p_coupon_id: couponId });
-    if (error) console.error("[coupon] increment usage:", error.message);
+  const useCouponUsage = useCallback(async (couponId: string): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("increment_coupon_usage" as any, { p_coupon_id: couponId });
+    if (error) {
+      console.error("[coupon] increment usage:", error.message);
+      return false;
+    }
+    return data === true;
   }, []);
 
   return { appliedCoupon, loading, error, validateAndApply, removeCoupon, useCouponUsage };
