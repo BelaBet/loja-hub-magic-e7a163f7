@@ -1,4 +1,4 @@
-// Webhook público do Pagar.me. Atualiza o status da venda em `vendas`
+// Webhook público do. Atualiza o status da venda em `vendas`
 // quando o pagamento for confirmado/falhar. Para o fluxo de maquininha (POS),
 // faz captura automática com split em "charge.authorized".
 //
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const user = sep >= 0 ? decoded.slice(0, sep) : decoded;
     const pass = sep >= 0 ? decoded.slice(sep + 1) : "";
     if (user !== expectedUser || pass !== expectedPass) {
-      console.warn("Credenciais Basic inválidas no webhook Pagar.me");
+      console.warn("Credenciais Basic inválidas no webhook");
       return finish(401, JSON.stringify({ error: "Unauthorized" }), { auth_ok: false, error: "bad credentials" });
     }
 
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
       novoPagamentoStatus = "falhou";
     } else if (eventType === "charge.refunded") {
       // Reembolso pode ser PARCIAL — não tratar como cancelamento total.
-      // A Pagar.me envia o valor já reembolsado em data.amount (centavos).
+      // A envia o valor já reembolsado em data.amount (centavos).
       // Compara contra o valor total cobrado da venda; só marca como
       // cancelada quando o reembolso cobre o valor integral.
       const matchVendaId = data?.order_id ?? data?.id;

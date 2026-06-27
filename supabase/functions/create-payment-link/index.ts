@@ -47,7 +47,7 @@ serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error("Pagar.me error:", data);
+      console.error("Gateway error:", data);
       return new Response(JSON.stringify({ error: data }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

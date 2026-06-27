@@ -1,4 +1,4 @@
-// Consulta o status de uma order/charge no Pagar.me e sincroniza a venda local.
+// Consulta o status de uma order/charge e sincroniza a venda local.
 // Body: { venda_id: string }
 // Auth: JWT do usuário (precisa pertencer à loja da venda — checagem via RLS).
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (vErr2 || !venda) return json({ error: "Venda não encontrada" }, 404);
     if (!venda.pagarme_order_id) {
-      return json({ error: "Venda sem pedido no Pagar.me" }, 400);
+      return json({ error: "Venda sem pedido" }, 400);
     }
 
     const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
@@ -71,9 +71,9 @@ Deno.serve(async (req) => {
     });
     const data = await res.json();
     if (!res.ok) {
-      console.error("Pagar.me order lookup error:", data);
+      console.error(" order lookup error:", data);
       return json(
-        { error: data?.message ?? "Erro ao consultar pedido no Pagar.me", details: data },
+        { error: data?.message ?? "Erro ao consultar pedido", details: data },
         res.status,
       );
     }
@@ -124,7 +124,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Mapeia status do Pagar.me → status interno
+    // Mapeia status do  → status interno
     let novoPagamento: string | null = null;
     let novoStatus: string | null = null;
     let setPaidAt = false;

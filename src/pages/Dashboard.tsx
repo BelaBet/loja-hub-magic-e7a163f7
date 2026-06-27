@@ -60,7 +60,7 @@ const Dashboard = () => {
   const [estoqueZerado, setEstoqueZerado] = useState(0);
   const [clientesNovos, setClientesNovos] = useState(0);
 
-  // Pagar.me em tempo real
+  //
   const [pgPendentes, setPgPendentes] = useState(0);
   const [pgPagos, setPgPagos] = useState(0);
   const [pgFalhou, setPgFalhou] = useState(0);
@@ -366,12 +366,12 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        {/* Pagamentos Pagar.me em tempo real */}
+        {/* Pagamentos */}
         <Card className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                Pagar.me · em tempo real
+                Pagamentos · em tempo real
               </span>
               <h2 className="font-display text-xl font-bold mt-1">Pagamentos online</h2>
             </div>
@@ -389,7 +389,7 @@ const Dashboard = () => {
 
           {pgRecentes.length === 0 ? (
             <p className="text-sm text-muted-foreground py-4 text-center">
-              Nenhum pagamento Pagar.me ainda.
+              Nenhum pagamento ainda.
             </p>
           ) : (
             <div className="space-y-1">

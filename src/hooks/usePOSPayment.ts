@@ -1,4 +1,4 @@
-// Orquestra cobrança em maquininha (Pagar.me Connect):
+// Orquestra cobrança em maquininha:
 //   1. Lista maquininhas ativas da loja
 //   2. create-pos-order (via edge function) envia pedido p/ a POS
 //   3. Poll em vendas.pagamento_status (webhook auto-captura no charge.authorized)
@@ -99,7 +99,7 @@ export function usePOSPayment() {
     stopPolling();
     const { intervalMs = 3000, maxAttempts = 80, onPaid, onFailed, onTimeout } = options ?? {};
     let attempts = 0;
-    // A cada N polls, força um sync direto com o Pagar.me (fallback caso o
+    // A cada N polls, força um sync direto com o gateway (fallback caso o
     // webhook não esteja chegando). 4 × 3s = ~12s entre syncs.
     const SYNC_EVERY = 4;
     pollingRef.current = setInterval(async () => {

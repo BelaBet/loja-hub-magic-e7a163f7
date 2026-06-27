@@ -124,7 +124,7 @@ const VendasHistorico = () => {
       toast.success(
         pago
           ? "Pagamento confirmado!"
-          : `Status no Pagar.me: ${data?.charge_status ?? data?.order_status ?? "—"}`,
+          : `Status: ${data?.charge_status ?? data?.order_status ?? "—"}`,
       );
       // Atualiza linha local
       setVendas((prev) =>
@@ -150,7 +150,7 @@ const VendasHistorico = () => {
         );
       }
     } catch (e) {
-      toast.error(traduzErro(e, "Falha ao consultar Pagar.me"));
+      toast.error(traduzErro(e, "Falha ao consultar gateway"));
     } finally {
       setSincronizando(null);
     }
@@ -289,7 +289,7 @@ const VendasHistorico = () => {
                                   e.stopPropagation();
                                   consultarPagarme(v.id);
                                 }}
-                                title="Consultar status no Pagar.me"
+                                title="Consultar status"
                               >
                                 <RefreshCw
                                   className={cn(
@@ -395,7 +395,7 @@ const VendasHistorico = () => {
                           sincronizando === detalhe.id && "animate-spin",
                         )}
                       />
-                      Consultar Pagar.me
+                      Consultar 
                     </Button>
                   )}
                 <Link to={`/vendas/${detalhe.id}/recibo`} target="_blank" rel="noopener noreferrer">
