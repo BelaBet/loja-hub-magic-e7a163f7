@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, LogOut, ShoppingCart, History, Boxes, FileText, Users, Shield, Settings, Scan, Ticket, User, Receipt, Network } from "lucide-react";
+import { LayoutDashboard, Package, LogOut, ShoppingCart, History, Boxes, FileText, Users, Shield, Settings, Scan, Ticket, User, Receipt, Network, Zap } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +23,7 @@ const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "PDV", url: "/vendas", icon: ShoppingCart },
   { title: "PDV Scanner", url: "/pdv", icon: Scan },
+  { title: "Venda avulsa", url: "/venda-avulsa", icon: Zap },
   { title: "Histórico", url: "/vendas/historico", icon: History },
   { title: "Catálogo", url: "/catalogo", icon: Package },
   { title: "Estoque", url: "/estoque", icon: Boxes },
