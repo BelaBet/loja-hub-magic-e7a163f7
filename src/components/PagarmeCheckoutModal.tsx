@@ -43,7 +43,7 @@ type Props = {
   method: PagarmeMethod;
   amount: number; // em reais
   customer?: PagarmeCustomer;
-  /** ID do recebedor da loja no Pagar.me (re_xxxxx). Quando ausente, não aplica split. */
+  /** ID do recebedor da loja (re_xxxxx). Quando ausente, não aplica split. */
   sellerRecipientId?: string | null;
   onClose: () => void;
   /** Chamado quando o pagamento for confirmado (PIX: manual; cartão: status paid/authorized) */

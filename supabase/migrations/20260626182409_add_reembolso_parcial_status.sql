@@ -1,5 +1,5 @@
 -- Permite o status "reembolso_parcial" em vendas.pagamento_status.
--- Antes, o webhook do Pagar.me tratava QUALQUER charge.refunded (parcial
+-- Antes, o webhook tratava QUALQUER charge.refunded (parcial
 -- ou total) como cancelamento da venda. Isso fazia vendas com reembolso
 -- parcial aparecerem como "falhou" no painel, mesmo tendo sido pagas.
 CREATE OR REPLACE FUNCTION public.validar_venda()

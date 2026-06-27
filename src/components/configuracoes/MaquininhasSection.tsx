@@ -114,7 +114,7 @@ export function MaquininhasSection({ canEdit }: { canEdit: boolean }) {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Cadastre as maquininhas Pagar.me Connect (Stone/Pagar.me POS) da loja para usar no PDV.
+        Cadastre as maquininhas conectadas da loja para usar no PDV.
       </p>
 
       {loading ? (

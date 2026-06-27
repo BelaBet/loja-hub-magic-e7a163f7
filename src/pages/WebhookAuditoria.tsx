@@ -103,7 +103,7 @@ const WebhookAuditoria = () => {
               <Webhook className="h-7 w-7" /> Auditoria de Webhooks
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Histórico das últimas 200 requisições recebidas no webhook do Pagar.me.
+              Histórico das últimas 200 requisições recebidas no webhook.
             </p>
           </div>
           <div className="flex gap-2">

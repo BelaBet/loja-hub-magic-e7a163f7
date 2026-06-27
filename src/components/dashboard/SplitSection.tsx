@@ -98,7 +98,7 @@ export function SplitSection() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Vendas &middot; split Pagar.me
+            Vendas &middot; split
           </span>
           <h2 className="font-display text-xl font-bold mt-1">Distribuição no período</h2>
         </div>
