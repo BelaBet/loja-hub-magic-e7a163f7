@@ -396,10 +396,10 @@ const Vendas = () => {
       if (vendaId) { setPosVendaId(vendaId); setPosOpen(true); }
       return;
     }
-    // Pagamentos online via Pagar.me
+    // Pagamentos online
     if (pagamento === "pix" || pagamento === "cartao_credito") {
       if (!sellerRecipientId) {
-        toast.error("Configure o Recipient ID da loja em Configurações antes de cobrar via Pagar.me.");
+        toast.error("Configure o Recipient ID da loja em Configurações antes de cobrar.");
         return;
       }
       setPagarmeMethod(pagamento === "pix" ? "pix" : "credit_card");
@@ -958,7 +958,7 @@ const Vendas = () => {
                   </label>
                   {cobrarNaMaquininha && !sellerRecipientId && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                      <strong>Venda bloqueada:</strong> a loja ainda não tem <code className="mono">Recipient ID</code> do Pagar.me configurado, então o split não pode ser aplicado.{" "}
+                      <strong>Venda bloqueada:</strong> a loja ainda não tem <code className="mono">Recipient ID</code> configurado, então o split não pode ser aplicado.{" "}
                       <Link to="/configuracoes" className="underline font-semibold">
                         Configurar agora
                       </Link>

@@ -348,12 +348,12 @@ export default function Configuracoes() {
               </div>
             </Card>
 
-            {/* Pagar.me */}
+            {/*  */}
             <Card className="p-6 space-y-4">
               <div className="flex items-center justify-between pb-2 border-b">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="font-semibold">Pagar.me — Split de pagamentos</h2>
+                  <h2 className="font-semibold">Split de pagamentos</h2>
                 </div>
                 {form.pagarme_recipient_id ? (
                   <Badge variant="secondary" className="bg-primary/10 text-primary">Configurado</Badge>
@@ -363,7 +363,7 @@ export default function Configuracoes() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Informe o <strong>Recipient ID</strong> da sua loja no Pagar.me para que os pagamentos sejam divididos
+                Informe o <strong>Recipient ID</strong> da sua loja para que os pagamentos sejam divididos
                 automaticamente entre a plataforma e a sua conta. Sem ele, o valor vai integralmente para a conta principal.
               </p>
 

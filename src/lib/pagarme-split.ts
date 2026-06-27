@@ -1,4 +1,4 @@
-// Cálculos de split Pagar.me v5 (todos os valores em centavos).
+// Cálculos de split v5 (todos os valores em centavos).
 export const PLATFORM_BASE_RATE = 0.0096; // 0,96%
 export const INSTALLMENT_RATE = 0.011; // 1,10% por parcela adicional (a partir da 2ª)
 export const STONE_MDR_RATE = 0.0204; // 2,04% MDR Stone
