@@ -34,6 +34,7 @@ import RecibosTemplates from "./pages/RecibosTemplates.tsx";
 import ReciboPublico from "./pages/ReciboPublico.tsx";
 import RedeDashboard from "./pages/RedeDashboard.tsx";
 import RedeConfiguracoes from "./pages/RedeConfiguracoes.tsx";
+import VendaAvulsa from "./pages/VendaAvulsa.tsx";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/catalogo/:id" element={<CatalogoNovo />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/pdv" element={<PDV />} />
+          <Route path="/venda-avulsa" element={<VendaAvulsa />} />
           <Route path="/cupons" element={<Cupons />} />
           <Route path="/vendas/historico" element={<VendasHistorico />} />
           <Route path="/vendas/:id/recibo" element={<Recibo />} />
