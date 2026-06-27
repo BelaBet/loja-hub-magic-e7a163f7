@@ -150,7 +150,7 @@ const VendasHistorico = () => {
         );
       }
     } catch (e) {
-      toast.error(traduzErro(e, "Falha ao consultar "));
+      toast.error(traduzErro(e, "Falha ao consultar gateway"));
     } finally {
       setSincronizando(null);
     }
