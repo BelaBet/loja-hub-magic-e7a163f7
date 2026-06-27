@@ -19,7 +19,7 @@ import {
 
 /**
  * Página de teste do pipeline de pagamento (PIX + Cartão) em homologação.
- * - Cria uma `venda` real (pagamento_status=pendente) + order no Pagar.me.
+ * - Cria uma `venda` real (pagamento_status=pendente) + order.
  * - Faz polling em `check-pos-order-status` até virar `pago` com split aplicado.
  * - Mostra a timeline e o resultado financeiro detalhado.
  */
@@ -156,7 +156,7 @@ export default function TestePagamento() {
     if (pixTimerRef.current) window.clearTimeout(pixTimerRef.current);
 
     try {
-      pushStep(setPixSteps, { kind: "info", label: "Criando order no Pagar.me…", detail: `${brl(amount / 100)} • PIX` });
+      pushStep(setPixSteps, { kind: "info", label: "Criando order…", detail: `${brl(amount / 100)} • PIX` });
       const { data, error } = await supabase.functions.invoke("create-order", {
         body: {
           payment_method: "pix",
@@ -332,7 +332,7 @@ export default function TestePagamento() {
             Teste de pagamento (homologação)
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Cria uma venda real, dispara PIX ou cartão no Pagar.me e acompanha o ciclo até
+            Cria uma venda real, dispara PIX ou cartão e acompanha o ciclo até
             confirmar <code className="mono">pagamento_status = pago</code> com split aplicado.
           </p>
         </header>

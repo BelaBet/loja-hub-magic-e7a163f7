@@ -1,4 +1,4 @@
-// Edge function: cria pedido na maquininha (Pagar.me Connect / POI) com split,
+// Edge function: cria pedido na maquininha com split,
 // e atualiza a venda (já criada pelo PDV como pendente) com os dados de cobrança.
 //
 // Body esperado:
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       sellerAmount = built.sellerAmount;
     }
 
-    // ── Payload Pagar.me Connect (POI) ───────────────────────────────────────
+    // ── Payload (POI) ───────────────────────────────────────
     const orderPayload = {
       customer: { name: customer.name, email: customer.email },
       items: [
@@ -190,7 +190,7 @@ Deno.serve(async (req) => {
     });
     const data = await res.json();
     if (!res.ok) {
-      console.error("Pagar.me POS error:", data);
+      console.error(" POS error:", data);
       return json(
         { error: data?.message ?? "Erro ao enviar pedido para a maquininha", details: data },
         res.status,
