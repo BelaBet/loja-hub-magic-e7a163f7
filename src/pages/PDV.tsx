@@ -16,6 +16,7 @@ import { useCoupon } from "@/hooks/useCoupon";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner, ConnectionDot } from "@/components/OfflineBanner";
 import { cacheProducts, findProductByEan, queuePendingSale } from "@/lib/offlineDb";
+import { traduzErro } from "@/lib/errors";
 
 type UIState =
   | { view: "idle" }
@@ -216,6 +217,19 @@ export default function PDV() {
     }
 
     try {
+      // Confirma o uso do cupom ANTES de criar a venda (operação atômica no
+      // banco). Se o cupom esgotou entre a aplicação no carrinho e o fechamento
+      // (ex.: outro caixa usou o último uso disponível), a venda é bloqueada
+      // em vez de sair com desconto aplicado sobre um cupom já esgotado.
+      if (coupon.appliedCoupon) {
+        const ok = await coupon.useCouponUsage(coupon.appliedCoupon.coupon.id);
+        if (!ok) {
+          toast.error("Este cupom acabou de esgotar. Remova-o para continuar.");
+          setSaving(false);
+          return;
+        }
+      }
+
       const { data: venda, error: vErr } = await supabase
         .from("vendas")
         .insert({
@@ -239,10 +253,11 @@ export default function PDV() {
         desconto: 0,
       }));
       const { error: iErr } = await supabase.from("venda_itens").insert(rows);
-      if (iErr) throw iErr;
-
-      if (coupon.appliedCoupon) {
-        await coupon.useCouponUsage(coupon.appliedCoupon.coupon.id);
+      if (iErr) {
+        // Reverte a venda já criada para não deixar registro "concluída" sem itens
+        // (ex.: bloqueio por estoque insuficiente em um dos produtos do carrinho).
+        await supabase.from("vendas").delete().eq("id", venda.id);
+        throw iErr;
       }
 
       toast.success("Venda registrada!");
@@ -260,7 +275,7 @@ export default function PDV() {
       setUi({ view: "idle" });
     } catch (e: any) {
       console.error(e);
-      toast.error("Erro ao registrar venda: " + (e?.message ?? "tente novamente"));
+      toast.error(traduzErro(e, "Erro ao registrar venda. Tente novamente."));
     } finally {
       setSaving(false);
     }
