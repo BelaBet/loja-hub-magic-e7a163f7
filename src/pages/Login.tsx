@@ -84,14 +84,16 @@ const Login = () => {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
       {/* Brand panel */}
-      <aside translate="no" className="lg:w-1/2 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+      <aside translate="no" className="lg:w-1/2 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden min-h-[340px]">
         {/* Imagem de fundo */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${loginBg})` }}
+        <img
+          src={loginBg}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        {/* Overlay escuro para garantir legibilidade */}
-        <div className="absolute inset-0 bg-black/40" />
+        {/* Overlay escuro para legibilidade */}
+        <div className="absolute inset-0 bg-black/45" />
 
         <BrandLogo width={140} height={100} className="relative z-10" />
         <div className="relative z-10 max-w-md">
