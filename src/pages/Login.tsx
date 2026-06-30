@@ -88,14 +88,14 @@ const Login = () => {
         <BrandLogo width={140} height={100} className="relative" />
         <div className="relative max-w-md">
           <h1 className="font-display text-4xl lg:text-5xl font-bold leading-[1.05] tracking-tight">
-            Mais que um PDV: um gestor inteligente que encontra dinheiro escondido na sua operação
+            THAI encontra o lucro escondido na sua operação.
           </h1>
           <p className="mt-5 text-primary-foreground/80 text-base leading-relaxed">
             Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { k: "IA Gratuita", l: "" },
+              { k: "IA INCLUSA", l: "" },
               { k: "Loja Online\u00a0\nGratuita", l: "" },
             ].map((s, idx) => (
               <div key={idx}>
