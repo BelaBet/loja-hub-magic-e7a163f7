@@ -157,6 +157,8 @@
   body * {
     visibility: hidden !important;
   }
+
+  /* PDV modal (ReceiptDialog) */
   #pdv-print-receipt,
   #pdv-print-receipt * {
     visibility: visible !important;
@@ -168,6 +170,41 @@
     width: 80mm;
     color: #000;
   }
+
+  /* Página /recibo/:id (Recibo.tsx) */
+  .recibo,
+  .recibo * {
+    visibility: visible !important;
+  }
+  .recibo {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    box-shadow: none !important;
+    padding: 8px 12px !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* RecibosPreview e ReciboPublico (.recibo-print-wrapper) */
+  .recibo-print-wrapper,
+  .recibo-print-wrapper * {
+    visibility: visible !important;
+  }
+  .recibo-print-wrapper {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+  }
+
+  /* ReciboPaper (RecibosPreview + ReciboPublico) */
+  .recibo-paper {
+    box-shadow: none !important;
+    border: none !important;
+    width: 80mm !important;
+  }
+
   @page {
     size: 80mm auto;
     margin: 4mm;

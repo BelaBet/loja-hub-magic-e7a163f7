@@ -266,27 +266,6 @@ const Recibo = () => {
         </div>
       </div>
 
-      <style>{`
-        .recibo {
-          width: 80mm;
-          max-width: 100%;
-          color: hsl(var(--foreground));
-          font-family: 'IBM Plex Mono', ui-monospace, monospace;
-        }
-        @media print {
-          @page { size: 80mm auto; margin: 4mm; }
-          html, body { background: #fff !important; }
-          body * { visibility: hidden; }
-          .recibo, .recibo * { visibility: visible; }
-          .recibo {
-            position: absolute;
-            left: 0; top: 0;
-            width: 80mm;
-            box-shadow: none;
-            padding: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };

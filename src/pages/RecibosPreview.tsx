@@ -130,16 +130,6 @@ export default function RecibosPreview() {
         </div>
       </div>
 
-      <style>{`
-        @media print {
-          @page { size: 80mm auto; margin: 4mm; }
-          html, body { background: #fff !important; }
-          body * { visibility: hidden; }
-          .recibo-print-wrapper, .recibo-print-wrapper * { visibility: visible; }
-          .recibo-print-wrapper { position: absolute; left: 0; top: 0; }
-          .recibo-paper { box-shadow: none !important; border: none !important; width: 80mm !important; }
-        }
-      `}</style>
     </AppLayout>
   );
 }
