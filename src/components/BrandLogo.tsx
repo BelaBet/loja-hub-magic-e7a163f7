@@ -8,8 +8,8 @@ type Props = {
 };
 
 export const BrandLogo = ({
-  width = 96,
-  height = 72,
+  width,
+  height,
   className = "",
   imgClassName = "",
 }: Props) => (
@@ -20,7 +20,6 @@ export const BrandLogo = ({
       width={width}
       height={height}
       className={`rounded-xl object-contain shadow-soft-sm max-w-full h-auto ${imgClassName}`}
-      style={{ width, height }}
     />
   </div>
 );
