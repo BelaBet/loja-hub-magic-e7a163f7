@@ -99,8 +99,8 @@ const Login = () => {
           <BrandLogo
             width={180}
             height={130}
-            className="w-32 h-auto lg:w-44 xl:w-52"
-            containerClassName="relative z-10"
+            className="relative z-10"
+            imgClassName="w-32 h-auto lg:w-44 xl:w-52"
           />
         </div>
         <div className="relative z-10 max-w-md">
