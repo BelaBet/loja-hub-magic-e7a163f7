@@ -4,22 +4,22 @@ type Props = {
   width?: number;
   height?: number;
   className?: string;
-  containerClassName?: string;
+  imgClassName?: string;
 };
 
 export const BrandLogo = ({
   width = 96,
   height = 72,
   className = "",
-  containerClassName = "",
+  imgClassName = "",
 }: Props) => (
-  <div className={`flex items-center justify-center ${containerClassName}`}>
+  <div className={`flex items-center justify-center ${className}`}>
     <img
       src={logoAsset.url}
       alt="THAI"
       width={width}
       height={height}
-      className={`rounded-xl object-contain shadow-soft-sm max-w-full h-auto ${className}`}
+      className={`rounded-xl object-contain shadow-soft-sm max-w-full h-auto ${imgClassName}`}
       style={{ width, height }}
     />
   </div>
