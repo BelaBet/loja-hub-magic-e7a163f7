@@ -87,10 +87,10 @@ const Login = () => {
         <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-primary-foreground/5 blur-3xl" />
         <BrandLogo width={140} height={100} className="relative" />
         <div className="relative max-w-md">
-          <h1 className="font-display text-4xl lg:text-5xl font-bold leading-[1.05] tracking-tight">
+          <h1 className="font-display text-3xl lg:text-4xl font-bold leading-[1.05] tracking-tight">
             THAI encontra o lucro escondido na sua operação.
           </h1>
-          <p className="mt-5 text-primary-foreground/80 text-base leading-relaxed">
+          <p className="mt-5 text-primary-foreground/80 text-sm leading-relaxed">
             Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4">
@@ -99,7 +99,7 @@ const Login = () => {
               { k: "Loja Virtual Inclusa", l: "" },
             ].map((s, idx) => (
               <div key={idx}>
-                <div className="num text-3xl font-bold">{s.k}</div>
+                <div className="num text-2xl font-bold">{s.k}</div>
                 {s.l ? (
                   <div className="mono text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-1">{s.l}</div>
                 ) : null}
@@ -115,7 +115,7 @@ const Login = () => {
         <Card className="w-full max-w-md p-8 shadow-soft-md border-border">
           <div className="mb-6">
             <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">ACESSO&nbsp;</span>
-            <h2 className="font-display text-3xl font-bold mt-2 tracking-tight">Bem-vindo</h2>
+            <h2 className="font-display text-2xl mt-2 tracking-tight">Bem-vindo</h2>
           </div>
 
           <Tabs defaultValue="login">
