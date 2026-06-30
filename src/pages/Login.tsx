@@ -96,7 +96,7 @@ const Login = () => {
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
               { k: "IA INCLUSA", l: "" },
-              { k: "Loja Online\u00a0\nGratuita", l: "" },
+              { k: "Loja Virtual Inclusa", l: "" },
             ].map((s, idx) => (
               <div key={idx}>
                 <div className="num text-3xl font-bold">{s.k}</div>
