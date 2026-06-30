@@ -83,14 +83,21 @@ const Login = () => {
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">
       {/* Brand panel */}
-      <aside translate="no" className="lg:w-1/2 bg-primary text-primary-foreground p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-primary-foreground/5 blur-3xl" />
-        <BrandLogo width={140} height={100} className="relative" />
-        <div className="relative max-w-md">
-          <h1 className="font-display text-3xl lg:text-4xl font-bold leading-[1.05] tracking-tight">
+      <aside translate="no" className="lg:w-1/2 text-white p-8 lg:p-16 flex flex-col justify-between relative overflow-hidden">
+        {/* Imagem de fundo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: "url('/login-bg-opt.jpg')" }}
+        />
+        {/* Overlay escuro para garantir legibilidade */}
+        <div className="absolute inset-0 bg-black/40" />
+
+        <BrandLogo width={140} height={100} className="relative z-10" />
+        <div className="relative z-10 max-w-md">
+          <h1 className="font-display text-3xl lg:text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-md">
             THAI encontra o lucro escondido na sua operação.
           </h1>
-          <p className="mt-5 text-primary-foreground/80 text-sm leading-relaxed">
+          <p className="mt-5 text-white/80 text-sm leading-relaxed drop-shadow">
             Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
           <div className="mt-10 grid grid-cols-3 gap-4">
@@ -99,15 +106,15 @@ const Login = () => {
               { k: "Loja Virtual Inclusa", l: "" },
             ].map((s, idx) => (
               <div key={idx}>
-                <div className="num text-2xl font-bold">{s.k}</div>
+                <div className="num text-2xl font-bold drop-shadow">{s.k}</div>
                 {s.l ? (
-                  <div className="mono text-[10px] uppercase tracking-widest text-primary-foreground/60 mt-1">{s.l}</div>
+                  <div className="mono text-[10px] uppercase tracking-widest text-white/60 mt-1">{s.l}</div>
                 ) : null}
               </div>
             ))}
           </div>
         </div>
-        <div className="relative mono text-xs text-primary-foreground/50" />
+        <div className="relative z-10 mono text-xs text-white/50" />
       </aside>
 
       {/* Auth form */}
