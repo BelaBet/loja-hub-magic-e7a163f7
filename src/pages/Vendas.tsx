@@ -958,7 +958,7 @@ const Vendas = () => {
                   </label>
                   {cobrarNaMaquininha && !sellerRecipientId && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                      <strong>Venda bloqueada:</strong> a loja ainda não tem <code className="mono">Recipient ID</code> configurado, então o split não pode ser aplicado.{" "}
+                      <strong>Venda bloqueada:</strong> a loja ainda não tem <code className="mono">Recipient ID</code> configurado, então o repasse não pode ser configurado.{" "}
                       <Link to="/configuracoes" className="underline font-semibold">
                         Configurar agora
                       </Link>

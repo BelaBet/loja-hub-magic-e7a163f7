@@ -98,7 +98,7 @@ export function SplitSection() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Vendas &middot; split
+            Vendas &middot; repasse
           </span>
           <h2 className="font-display text-xl font-bold mt-1">Distribuição no período</h2>
         </div>
@@ -154,7 +154,7 @@ export function SplitSection() {
         <KpiTile icon={Banknote} label="Total vendido" value={brl(tot.total)} hint={`${tot.n} venda${tot.n === 1 ? "" : "s"}`} tone="primary" />
         <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
         <KpiTile icon={Building2} label="Plataforma" value={brl(tot.plataforma)} tone="warning" />
-        <KpiTile icon={Wallet} label="Lojista (split)" value={brl(tot.lojista)} tone="success" />
+        <KpiTile icon={Wallet} label="Lojista" value={brl(tot.lojista)} tone="success" />
       </div>
 
       <div>
