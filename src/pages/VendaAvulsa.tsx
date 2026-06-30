@@ -91,7 +91,7 @@ export default function VendaAvulsa() {
               autoFocus
               placeholder="0,00"
               value={valorStr}
-              onChange={(e) => setValorStr(e.target.value)}
+              onChange={(e) => setValorStr(formatValor(e.target.value))}
               className="h-12 text-xl font-semibold"
             />
           </div>
