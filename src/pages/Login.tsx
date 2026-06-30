@@ -95,7 +95,14 @@ const Login = () => {
         {/* Overlay escuro para legibilidade */}
         <div className="absolute inset-0 bg-black/45" />
 
-        <BrandLogo width={140} height={100} className="relative z-10" />
+        <div className="relative z-10 w-full flex justify-center">
+          <BrandLogo
+            width={180}
+            height={130}
+            className="relative z-10"
+            imgClassName="w-36 h-auto sm:w-40 lg:w-48 xl:w-56"
+          />
+        </div>
         <div className="relative z-10 max-w-md">
           <h1 className="font-display text-3xl lg:text-4xl font-bold leading-[1.05] tracking-tight drop-shadow-md">
             THAI encontra o lucro escondido na sua operação.
@@ -103,7 +110,7 @@ const Login = () => {
           <p className="mt-5 text-white/80 text-sm leading-relaxed drop-shadow">
             Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
-          <div className="mt-10 grid grid-cols-3 gap-4">
+          <div className="mt-10 grid grid-cols-2 gap-6 sm:gap-8 max-w-xs">
             {[
               { k: "IA INCLUSA", l: "" },
               { k: "Loja Virtual Inclusa", l: "" },
