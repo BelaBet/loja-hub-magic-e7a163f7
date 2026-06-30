@@ -20,7 +20,7 @@ import {
 /**
  * Página de teste do pipeline de pagamento (PIX + Cartão) em homologação.
  * - Cria uma `venda` real (pagamento_status=pendente) + order.
- * - Faz polling em `check-pos-order-status` até virar `pago` com split aplicado.
+ * - Faz polling em `check-pos-order-status` até virar `pago` com repasse aplicado.
  * - Mostra a timeline e o resultado financeiro detalhado.
  */
 
@@ -333,7 +333,7 @@ export default function TestePagamento() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Cria uma venda real, dispara PIX ou cartão e acompanha o ciclo até
-            confirmar <code className="mono">pagamento_status = pago</code> com split aplicado.
+            confirmar <code className="mono">pagamento_status = pago</code> com repasse aplicado.
           </p>
         </header>
 
