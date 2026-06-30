@@ -130,6 +130,27 @@
   .mono {
     font-family: 'IBM Plex Mono', monospace;
   }
+
+  /* Fluid display heading — escala suavemente de 375px até 1280px */
+  .text-fluid-3xl {
+    font-size: clamp(1.35rem, 4vw + 0.5rem, 2.25rem);
+  }
+  .text-fluid-2xl {
+    font-size: clamp(1.15rem, 3vw + 0.4rem, 1.5rem);
+  }
+
+  /* Valor numérico grande (KPI) — nunca vaza em grid de 2 colunas */
+  .text-fluid-kpi {
+    font-size: clamp(1.1rem, 3.5vw + 0.25rem, 1.875rem);
+    line-height: 1.15;
+  }
+}
+
+/* Garante que imagens e ícones SVG não estourem containers pequenos */
+@layer base {
+  img, svg {
+    max-width: 100%;
+  }
 }
 
 @media print {

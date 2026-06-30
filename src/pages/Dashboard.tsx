@@ -249,8 +249,8 @@ const Dashboard = () => {
           <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
             Visão geral
           </span>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-1">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
+          <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">Dashboard</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
             Acompanhe vendas, estoque e clientes em tempo real.
           </p>
         </header>
@@ -319,7 +319,7 @@ const Dashboard = () => {
               <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Faturamento
               </span>
-              <h2 className="font-display text-xl font-bold mt-1">Últimos 30 dias</h2>
+              <h2 className="font-display text-fluid-2xl font-bold mt-1">Últimos 30 dias</h2>
             </div>
           </div>
           <div className="h-[180px] sm:h-72">
@@ -373,7 +373,7 @@ const Dashboard = () => {
               <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Pagamentos · em tempo real
               </span>
-              <h2 className="font-display text-xl font-bold mt-1">Pagamentos online</h2>
+              <h2 className="font-display text-fluid-2xl font-bold mt-1">Pagamentos online</h2>
             </div>
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
@@ -411,9 +411,9 @@ const Dashboard = () => {
                         {v.clientes?.nome ?? "Sem cliente"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                       <PagamentoStatusBadge status={st} />
-                      <span className="num font-semibold text-sm w-24 text-right">
+                      <span className="num font-semibold text-xs sm:text-sm min-w-[4.5rem] text-right">
                         {brl(v.total)}
                       </span>
                     </div>
@@ -433,7 +433,7 @@ const Dashboard = () => {
                 <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Mais vendidos
                 </span>
-                <h2 className="font-display text-xl font-bold mt-1">Top 5 do mês</h2>
+                <h2 className="font-display text-fluid-2xl font-bold mt-1">Top 5 do mês</h2>
               </div>
               <Package className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -458,11 +458,11 @@ const Dashboard = () => {
                       </span>
                       <span className="text-sm font-medium truncate">{p.nome}</span>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                       <span className="num text-xs text-muted-foreground">
                         {num(p.quantidade)} un
                       </span>
-                      <span className="num font-semibold text-sm w-24 text-right">
+                      <span className="num font-semibold text-xs sm:text-sm min-w-[4.5rem] text-right">
                         {brl(p.total)}
                       </span>
                     </div>
@@ -479,7 +479,7 @@ const Dashboard = () => {
                 <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Atividade
                 </span>
-                <h2 className="font-display text-xl font-bold mt-1">Últimas 5 vendas</h2>
+                <h2 className="font-display text-fluid-2xl font-bold mt-1">Últimas 5 vendas</h2>
               </div>
               <Link to="/vendas/historico" className="text-xs text-primary hover:underline">
                 Ver tudo
@@ -511,11 +511,11 @@ const Dashboard = () => {
                           {v.clientes?.nome ?? "Sem cliente"}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <Badge variant="outline" className="text-[10px] gap-1">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                        <Badge variant="outline" className="text-[10px] gap-1 hidden xs:inline-flex sm:inline-flex">
                           <Icon className="h-3 w-3" /> {pg.label}
                         </Badge>
-                        <span className="num font-semibold text-sm w-24 text-right">
+                        <span className="num font-semibold text-xs sm:text-sm min-w-[4.5rem] text-right">
                           {brl(v.total)}
                         </span>
                       </div>
@@ -553,15 +553,15 @@ const StatusTile = ({
       ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
       : "text-destructive bg-destructive/10";
   return (
-    <div className="rounded-xl border border-border p-3 flex items-center gap-3">
-      <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${toneClass}`}>
-        <Icon className="h-4 w-4" />
+    <div className="rounded-xl border border-border p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3">
+      <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-lg flex items-center justify-center shrink-0 ${toneClass}`}>
+        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </div>
       <div className="min-w-0">
-        <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground truncate">
+        <div className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate leading-tight">
           {label}
         </div>
-        <div className="num text-xl font-bold leading-tight">{value}</div>
+        <div className="num text-fluid-kpi font-bold leading-tight">{value}</div>
       </div>
     </div>
   );
@@ -608,19 +608,19 @@ const KpiCard = ({
     "text-primary bg-primary-soft";
 
   const card = (
-    <Card className={`p-6 transition-all ${href ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer" : ""}`}>
+    <Card className={`p-4 sm:p-6 transition-all ${href ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer" : ""}`}>
       <div className="flex items-center justify-between">
-        <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground leading-tight">
           {label}
         </span>
-        <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${toneClass}`}>
-          <Icon className="h-4 w-4" />
+        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center shrink-0 ${toneClass}`}>
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
         </div>
       </div>
       {loading ? (
-        <Skeleton className="h-9 w-32 mt-3" />
+        <Skeleton className="h-8 sm:h-9 w-28 sm:w-32 mt-3" />
       ) : (
-        <div className="num text-3xl font-bold mt-3 tracking-tight">{value}</div>
+        <div className="num text-fluid-3xl font-bold mt-2 sm:mt-3 tracking-tight">{value}</div>
       )}
       {variacao?.tem && !loading && (
         <div className="flex items-center gap-1.5 mt-2">
