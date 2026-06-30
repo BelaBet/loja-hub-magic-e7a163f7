@@ -36,13 +36,13 @@ export function BottomNav() {
               <NavLink
                 to={it.url}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2 min-h-[56px]",
-                  "text-[10px] font-medium transition-colors",
+                  "flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px] px-1",
+                  "text-[9px] xs:text-[10px] font-medium transition-colors",
                   active ? "text-primary" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                <Icon className={cn("h-5 w-5", active && "stroke-[2.4]")} />
-                <span className="leading-none">{it.title}</span>
+                <Icon className={cn("h-5 w-5 shrink-0", active && "stroke-[2.4]")} />
+                <span className="leading-none truncate max-w-full">{it.title}</span>
               </NavLink>
             </li>
           );
