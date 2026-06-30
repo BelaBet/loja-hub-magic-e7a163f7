@@ -23,6 +23,14 @@ export default function VendaAvulsa() {
   const [payment, setPayment] = useState<PDVPayment>("dinheiro");
   const [saving, setSaving] = useState(false);
 
+  const formatValor = (s: string) => {
+    const digits = s.replace(/\D/g, "");
+    const cents = Number(digits) || 0;
+    return (cents / 100).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
   const parseValor = (s: string) => {
     const n = Number(s.replace(/\./g, "").replace(",", "."));
     return isFinite(n) ? n : NaN;
@@ -83,7 +91,7 @@ export default function VendaAvulsa() {
               autoFocus
               placeholder="0,00"
               value={valorStr}
-              onChange={(e) => setValorStr(e.target.value)}
+              onChange={(e) => setValorStr(formatValor(e.target.value))}
               className="h-12 text-xl font-semibold"
             />
           </div>
