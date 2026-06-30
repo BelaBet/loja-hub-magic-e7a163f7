@@ -213,6 +213,18 @@ const CatalogoPublico = () => {
         </div>
       </header>
 
+      {loja?.banner_enabled && loja.banner_image_url && (
+        <div className="max-w-6xl mx-auto px-4 pt-4">
+          {loja.banner_link_url ? (
+            <a href={loja.banner_link_url} target="_blank" rel="noreferrer" className="block">
+              <img src={loja.banner_image_url} alt="Banner" className="w-full rounded-lg object-cover aspect-[3/1]" />
+            </a>
+          ) : (
+            <img src={loja.banner_image_url} alt="Banner" className="w-full rounded-lg object-cover aspect-[3/1]" />
+          )}
+        </div>
+      )}
+
       <main className="max-w-6xl mx-auto px-4 py-5">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -232,88 +244,16 @@ const CatalogoPublico = () => {
             <p className="mt-3 text-muted-foreground">Nenhum produto encontrado</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((p) => {
-              const foto = p.fotos?.[0];
-              const estoqueQtd = p.estoque?.[0]?.quantidade ?? null;
-              const semEstoque = estoqueQtd !== null && estoqueQtd <= 0;
-              const qty = qtyByProduct[p.id] ?? 1;
-              return (
-                <Card
-                  key={p.id}
-                  className="p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col"
-                >
-                  <div
-                    className="relative aspect-square bg-muted cursor-pointer"
-                    onClick={() => setPreview(p)}
-                  >
-                    {foto ? (
-                      <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center">
-                        <Package className="h-10 w-10 text-muted-foreground opacity-30" />
-                      </div>
-                    )}
-                    {semEstoque && (
-                      <Badge className="absolute top-2 left-2 bg-destructive/10 text-destructive border-0 mono text-[10px]">
-                        Sem estoque
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3
-                      className="font-display font-semibold leading-tight line-clamp-2 cursor-pointer"
-                      onClick={() => setPreview(p)}
-                    >
-                      {p.nome}
-                    </h3>
-                    {p.categoria && (
-                      <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                        {p.categoria}
-                      </div>
-                    )}
-                    <div
-                      className="num text-xl font-bold mt-2"
-                      style={{ color: "var(--brand-primary)" }}
-                    >
-                      {brl(p.preco_venda)}
-                    </div>
-                    <div className="mt-3 flex flex-col gap-2">
-                      {semEstoque ? (
-                        <Button disabled className="w-full h-11">
-                          Esgotado
-                        </Button>
-                      ) : (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <QuantitySelector
-                              value={qty}
-                              onChange={(v) => setQty(p.id, v)}
-                              max={estoqueQtd}
-                              size="sm"
-                            />
-                            {estoqueQtd !== null && qty >= estoqueQtd && (
-                              <span className="mono text-[10px] text-muted-foreground">
-                                Máx: {estoqueQtd}
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            className="w-full h-11 text-white hover:opacity-90"
-                            style={{ background: "var(--brand-primary)" }}
-                            onClick={() => handleAdd(p)}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Adicionar
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+          <ProductGrid
+            mode={mode}
+            accent={accent}
+            items={filtered}
+            qtyByProduct={qtyByProduct}
+            setQty={setQty}
+            handleAdd={handleAdd}
+            setPreview={setPreview}
+            oosBehavior={oosBehavior}
+          />
         )}
       </main>
 
