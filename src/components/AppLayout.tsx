@@ -61,14 +61,16 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
       <div className="min-h-screen flex w-full bg-surface">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border bg-background/80 backdrop-blur px-4 sticky top-0 z-20">
-            <SidebarTrigger className="h-10 w-10" aria-label="Abrir menu" />
-            <div className="flex-1" />
-            <LojaSwitcher />
+          <header className="h-12 sm:h-14 flex items-center gap-2 sm:gap-3 border-b border-border bg-background/80 backdrop-blur px-3 sm:px-4 sticky top-0 z-20">
+            <SidebarTrigger className="h-9 w-9 shrink-0" aria-label="Abrir menu" />
+            <div className="flex-1 min-w-0" />
+            <div className="min-w-0 max-w-[40vw] sm:max-w-none">
+              <LojaSwitcher />
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0" aria-label="Menu do usuário">
-                  <Avatar className="h-9 w-9">
+                <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 shrink-0" aria-label="Menu do usuário">
+                  <Avatar className="h-8 w-8 sm:h-9 sm:w-9">
                     <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium uppercase">
                       {session.user.email?.charAt(0) ?? "U"}
                     </AvatarFallback>
@@ -92,7 +94,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 px-4 py-5 sm:px-6 md:px-8 md:py-6 pb-24 lg:pb-8">
+          <main className="flex-1 px-3 py-4 sm:px-6 md:px-8 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-8">
             {children}
           </main>
         </div>
