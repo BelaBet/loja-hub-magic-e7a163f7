@@ -286,10 +286,15 @@ export type Database = {
       }
       lojas: {
         Row: {
+          accent_color: string
+          banner_enabled: boolean
+          banner_image_url: string | null
+          banner_link_url: string | null
           cnpj: string | null
           cor_primaria: string | null
           cor_secundaria: string | null
           created_at: string
+          display_mode: string
           email: string | null
           endereco: string | null
           id: string
@@ -297,6 +302,7 @@ export type Database = {
           logo_url: string | null
           nome: string
           onboarding_completo: boolean
+          out_of_stock_behavior: string
           pagarme_recipient_id: string | null
           plano: string
           recibo_config: Json
@@ -304,10 +310,15 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accent_color?: string
+          banner_enabled?: boolean
+          banner_image_url?: string | null
+          banner_link_url?: string | null
           cnpj?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           created_at?: string
+          display_mode?: string
           email?: string | null
           endereco?: string | null
           id?: string
@@ -315,6 +326,7 @@ export type Database = {
           logo_url?: string | null
           nome: string
           onboarding_completo?: boolean
+          out_of_stock_behavior?: string
           pagarme_recipient_id?: string | null
           plano?: string
           recibo_config?: Json
@@ -322,10 +334,15 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accent_color?: string
+          banner_enabled?: boolean
+          banner_image_url?: string | null
+          banner_link_url?: string | null
           cnpj?: string | null
           cor_primaria?: string | null
           cor_secundaria?: string | null
           created_at?: string
+          display_mode?: string
           email?: string | null
           endereco?: string | null
           id?: string
@@ -333,6 +350,7 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           onboarding_completo?: boolean
+          out_of_stock_behavior?: string
           pagarme_recipient_id?: string | null
           plano?: string
           recibo_config?: Json

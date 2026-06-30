@@ -35,6 +35,7 @@ import ReciboPublico from "./pages/ReciboPublico.tsx";
 import RedeDashboard from "./pages/RedeDashboard.tsx";
 import RedeConfiguracoes from "./pages/RedeConfiguracoes.tsx";
 import VendaAvulsa from "./pages/VendaAvulsa.tsx";
+import CatalogoConfig from "./pages/CatalogoConfig.tsx";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +56,7 @@ const App = () => (
           <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/catalogo/novo" element={<CatalogoNovo />} />
           <Route path="/catalogo/:id" element={<CatalogoNovo />} />
+          <Route path="/dashboard/catalogo/:section" element={<CatalogoConfig />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/pdv" element={<PDV />} />
           <Route path="/venda-avulsa" element={<VendaAvulsa />} />

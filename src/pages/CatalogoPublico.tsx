@@ -34,6 +34,12 @@ type Loja = {
   telefone: string | null;
   cor_primaria: string | null;
   cor_secundaria: string | null;
+  display_mode?: "list" | "grid" | "instaview" | null;
+  accent_color?: string | null;
+  out_of_stock_behavior?: "hide" | "show_unavailable" | "show_normal" | null;
+  banner_enabled?: boolean | null;
+  banner_image_url?: string | null;
+  banner_link_url?: string | null;
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -76,14 +82,22 @@ const CatalogoPublico = () => {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return produtos;
-    return produtos.filter(
+    const oos = loja?.out_of_stock_behavior ?? "show_unavailable";
+    let base = produtos;
+    if (oos === "hide") {
+      base = base.filter((p) => {
+        const qtd = p.estoque?.[0]?.quantidade;
+        return qtd === undefined || qtd === null || qtd > 0;
+      });
+    }
+    if (!s) return base;
+    return base.filter(
       (p) =>
         p.nome.toLowerCase().includes(s) ||
         p.sku?.toLowerCase().includes(s) ||
         p.categoria?.toLowerCase().includes(s),
     );
-  }, [produtos, q]);
+  }, [produtos, q, loja?.out_of_stock_behavior]);
 
   const whatsappLink = (texto: string) => {
     if (!loja?.telefone) return null;
@@ -140,7 +154,12 @@ const CatalogoPublico = () => {
   const cores = {
     "--brand-primary": loja?.cor_primaria || "#3F3C7A",
     "--brand-secondary": loja?.cor_secundaria || "#D8A14A",
+    "--catalog-accent-color": loja?.accent_color || loja?.cor_primaria || "#16A34A",
   } as React.CSSProperties;
+
+  const accent = loja?.accent_color || loja?.cor_primaria || "#16A34A";
+  const mode = loja?.display_mode || "grid";
+  const oosBehavior = loja?.out_of_stock_behavior || "show_unavailable";
 
   return (
     <div className="min-h-screen bg-background" style={cores}>
@@ -194,6 +213,18 @@ const CatalogoPublico = () => {
         </div>
       </header>
 
+      {loja?.banner_enabled && loja.banner_image_url && (
+        <div className="max-w-6xl mx-auto px-4 pt-4">
+          {loja.banner_link_url ? (
+            <a href={loja.banner_link_url} target="_blank" rel="noreferrer" className="block">
+              <img src={loja.banner_image_url} alt="Banner" className="w-full rounded-lg object-cover aspect-[3/1]" />
+            </a>
+          ) : (
+            <img src={loja.banner_image_url} alt="Banner" className="w-full rounded-lg object-cover aspect-[3/1]" />
+          )}
+        </div>
+      )}
+
       <main className="max-w-6xl mx-auto px-4 py-5">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -213,88 +244,16 @@ const CatalogoPublico = () => {
             <p className="mt-3 text-muted-foreground">Nenhum produto encontrado</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((p) => {
-              const foto = p.fotos?.[0];
-              const estoqueQtd = p.estoque?.[0]?.quantidade ?? null;
-              const semEstoque = estoqueQtd !== null && estoqueQtd <= 0;
-              const qty = qtyByProduct[p.id] ?? 1;
-              return (
-                <Card
-                  key={p.id}
-                  className="p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col"
-                >
-                  <div
-                    className="relative aspect-square bg-muted cursor-pointer"
-                    onClick={() => setPreview(p)}
-                  >
-                    {foto ? (
-                      <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center">
-                        <Package className="h-10 w-10 text-muted-foreground opacity-30" />
-                      </div>
-                    )}
-                    {semEstoque && (
-                      <Badge className="absolute top-2 left-2 bg-destructive/10 text-destructive border-0 mono text-[10px]">
-                        Sem estoque
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h3
-                      className="font-display font-semibold leading-tight line-clamp-2 cursor-pointer"
-                      onClick={() => setPreview(p)}
-                    >
-                      {p.nome}
-                    </h3>
-                    {p.categoria && (
-                      <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                        {p.categoria}
-                      </div>
-                    )}
-                    <div
-                      className="num text-xl font-bold mt-2"
-                      style={{ color: "var(--brand-primary)" }}
-                    >
-                      {brl(p.preco_venda)}
-                    </div>
-                    <div className="mt-3 flex flex-col gap-2">
-                      {semEstoque ? (
-                        <Button disabled className="w-full h-11">
-                          Esgotado
-                        </Button>
-                      ) : (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <QuantitySelector
-                              value={qty}
-                              onChange={(v) => setQty(p.id, v)}
-                              max={estoqueQtd}
-                              size="sm"
-                            />
-                            {estoqueQtd !== null && qty >= estoqueQtd && (
-                              <span className="mono text-[10px] text-muted-foreground">
-                                Máx: {estoqueQtd}
-                              </span>
-                            )}
-                          </div>
-                          <Button
-                            className="w-full h-11 text-white hover:opacity-90"
-                            style={{ background: "var(--brand-primary)" }}
-                            onClick={() => handleAdd(p)}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            Adicionar
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
+          <ProductGrid
+            mode={mode}
+            accent={accent}
+            items={filtered}
+            qtyByProduct={qtyByProduct}
+            setQty={setQty}
+            handleAdd={handleAdd}
+            setPreview={setPreview}
+            oosBehavior={oosBehavior}
+          />
         )}
       </main>
 
@@ -374,3 +333,145 @@ const CatalogoPublico = () => {
 };
 
 export default CatalogoPublico;
+
+type GridProps = {
+  mode: "list" | "grid" | "instaview";
+  accent: string;
+  items: ProdutoPub[];
+  qtyByProduct: Record<string, number>;
+  setQty: (id: string, v: number) => void;
+  handleAdd: (p: ProdutoPub) => void;
+  setPreview: (p: ProdutoPub) => void;
+  oosBehavior: "hide" | "show_unavailable" | "show_normal";
+};
+
+function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, setPreview, oosBehavior }: GridProps) {
+  const stockOf = (p: ProdutoPub) => p.estoque?.[0]?.quantidade ?? null;
+  const isOOS = (p: ProdutoPub) => {
+    const q = stockOf(p);
+    return q !== null && q <= 0;
+  };
+  const treatAsUnavailable = (p: ProdutoPub) =>
+    isOOS(p) && oosBehavior === "show_unavailable";
+
+  if (mode === "list") {
+    return (
+      <div className="flex flex-col gap-2">
+        {items.map((p) => {
+          const foto = p.fotos?.[0];
+          const unavailable = treatAsUnavailable(p);
+          return (
+            <Card key={p.id} className={`p-3 flex gap-3 items-center ${unavailable ? "opacity-60" : ""}`}>
+              <button onClick={() => setPreview(p)} className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
+                {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
+                  : <Package className="h-6 w-6 m-auto mt-5 text-muted-foreground opacity-40" />}
+              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-display font-semibold leading-tight line-clamp-1">{p.nome}</h3>
+                {p.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{p.descricao}</p>}
+                <div className="num text-base font-bold mt-1" style={{ color: accent }}>{brl(p.preco_venda)}</div>
+              </div>
+              {unavailable ? (
+                <Badge className="text-white border-0" style={{ background: accent }}>Esgotado</Badge>
+              ) : (
+                <Button
+                  size="sm"
+                  className="text-white hover:opacity-90 shrink-0"
+                  style={{ background: accent }}
+                  onClick={() => handleAdd(p)}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                </Button>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (mode === "instaview") {
+    return (
+      <div className="max-w-md mx-auto flex flex-col gap-6">
+        {items.map((p) => {
+          const foto = p.fotos?.[0];
+          const unavailable = treatAsUnavailable(p);
+          const estoqueQtd = stockOf(p);
+          const qty = qtyByProduct[p.id] ?? 1;
+          return (
+            <Card key={p.id} className={`p-0 overflow-hidden ${unavailable ? "opacity-60" : ""}`}>
+              <button onClick={() => setPreview(p)} className="block w-full aspect-square bg-muted">
+                {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
+                  : <Package className="h-16 w-16 m-auto mt-20 text-muted-foreground opacity-30" />}
+              </button>
+              <div className="p-4">
+                <h3 className="font-display text-lg font-semibold">{p.nome}</h3>
+                {p.descricao && <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.descricao}</p>}
+                <div className="num text-2xl font-bold mt-2" style={{ color: accent }}>{brl(p.preco_venda)}</div>
+                {unavailable ? (
+                  <Button disabled className="w-full h-11 mt-3">Esgotado</Button>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    <QuantitySelector value={qty} onChange={(v) => setQty(p.id, v)} max={estoqueQtd} size="sm" />
+                    <Button className="w-full h-11 text-white hover:opacity-90" style={{ background: accent }} onClick={() => handleAdd(p)}>
+                      <ShoppingCart className="h-4 w-4 mr-1" />Adicionar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // grid (default)
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+      {items.map((p) => {
+        const foto = p.fotos?.[0];
+        const unavailable = treatAsUnavailable(p);
+        const estoqueQtd = stockOf(p);
+        const qty = qtyByProduct[p.id] ?? 1;
+        return (
+          <Card key={p.id} className={`p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col ${unavailable ? "opacity-60" : ""}`}>
+            <div className="relative aspect-square bg-muted cursor-pointer" onClick={() => setPreview(p)}>
+              {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
+                : <div className="h-full w-full flex items-center justify-center"><Package className="h-10 w-10 text-muted-foreground opacity-30" /></div>}
+              {unavailable && (
+                <Badge className="absolute top-2 left-2 text-white border-0 mono text-[10px]" style={{ background: accent }}>
+                  Esgotado
+                </Badge>
+              )}
+            </div>
+            <div className="p-4 flex-1 flex flex-col">
+              <h3 className="font-display font-semibold leading-tight line-clamp-2 cursor-pointer" onClick={() => setPreview(p)}>{p.nome}</h3>
+              {p.categoria && (
+                <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{p.categoria}</div>
+              )}
+              <div className="num text-xl font-bold mt-2" style={{ color: accent }}>{brl(p.preco_venda)}</div>
+              <div className="mt-3 flex flex-col gap-2">
+                {unavailable ? (
+                  <Button disabled className="w-full h-11">Esgotado</Button>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <QuantitySelector value={qty} onChange={(v) => setQty(p.id, v)} max={estoqueQtd} size="sm" />
+                      {estoqueQtd !== null && qty >= estoqueQtd && (
+                        <span className="mono text-[10px] text-muted-foreground">Máx: {estoqueQtd}</span>
+                      )}
+                    </div>
+                    <Button className="w-full h-11 text-white hover:opacity-90" style={{ background: accent }} onClick={() => handleAdd(p)}>
+                      <ShoppingCart className="h-4 w-4 mr-1" />Adicionar
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
