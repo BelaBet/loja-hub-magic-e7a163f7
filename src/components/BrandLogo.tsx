@@ -1,4 +1,4 @@
-import logoAsset from "@/assets/ankor-logo.jpeg.asset.json";
+import logoAsset from "@/assets/thai-logo.jpeg.asset.json";
 
 type Props = {
   width?: number;
