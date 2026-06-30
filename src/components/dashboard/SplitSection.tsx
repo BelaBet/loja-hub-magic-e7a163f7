@@ -42,11 +42,13 @@ export function SplitSection() {
   const [loading, setLoading] = useState(true);
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [meuId, setMeuId] = useState<string | null>(null);
+  const [isSuper, setIsSuper] = useState(false);
 
   const range = useMemo(() => rangeFor(periodo, custom), [periodo, custom]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeuId(data.user?.id ?? null));
+    supabase.rpc("is_super_admin").then(({ data }) => setIsSuper(data === true));
   }, []);
 
   useEffect(() => {
@@ -55,7 +57,11 @@ export function SplitSection() {
       setLoading(true);
       const { data, error } = await supabase
         .from("vendas")
-        .select("vendedor_id, total, base_amount, platform_amount, seller_amount")
+        .select(
+          isSuper
+            ? "vendedor_id, total, base_amount, platform_amount, seller_amount"
+            : "vendedor_id, total",
+        )
         .eq("status", "concluida")
         .gte("created_at", range.from.toISOString())
         .lte("created_at", range.to.toISOString())
@@ -63,7 +69,8 @@ export function SplitSection() {
       if (cancel) return;
       if (error) { setLinhas([]); setLoading(false); return; }
       const map = new Map<string, Linha>();
-      for (const v of data ?? []) {
+      type Row = { vendedor_id: string | null; total: number; base_amount?: number; platform_amount?: number; seller_amount?: number };
+      for (const v of (data ?? []) as unknown as Row[]) {
         const key = v.vendedor_id ?? "sem-vendedor";
         const cur = map.get(key) ?? { vendedor_id: key, total: 0, base: 0, plataforma: 0, lojista: 0, n: 0 };
         cur.total += Number(v.total ?? 0);
@@ -77,7 +84,7 @@ export function SplitSection() {
       setLoading(false);
     })();
     return () => { cancel = true; };
-  }, [range.from, range.to]);
+  }, [range.from, range.to, isSuper]);
 
   const tot = useMemo(
     () => linhas.reduce(
@@ -98,7 +105,7 @@ export function SplitSection() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Vendas &middot; repasse
+            {isSuper ? "Vendas · repasse" : "Vendas por vendedor"}
           </span>
           <h2 className="font-display text-xl font-bold mt-1">Distribuição no período</h2>
         </div>
@@ -150,11 +157,15 @@ export function SplitSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={cn("grid grid-cols-2 gap-3", isSuper ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
         <KpiTile icon={Banknote} label="Total vendido" value={brl(tot.total)} hint={`${tot.n} venda${tot.n === 1 ? "" : "s"}`} tone="primary" />
-        <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
-        <KpiTile icon={Building2} label="Plataforma" value={brl(tot.plataforma)} tone="warning" />
-        <KpiTile icon={Wallet} label="Lojista" value={brl(tot.lojista)} tone="success" />
+        {isSuper && (
+          <>
+            <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
+            <KpiTile icon={Building2} label="Plataforma" value={brl(tot.plataforma)} tone="warning" />
+            <KpiTile icon={Wallet} label="Lojista" value={brl(tot.lojista)} tone="success" />
+          </>
+        )}
       </div>
 
       <div>
@@ -177,8 +188,12 @@ export function SplitSection() {
                   <th className="px-3 py-2 font-medium">Vendedor</th>
                   <th className="px-3 py-2 font-medium text-right">Vendas</th>
                   <th className="px-3 py-2 font-medium text-right">Total</th>
-                  <th className="px-3 py-2 font-medium text-right hidden sm:table-cell">Plataforma</th>
-                  <th className="px-3 py-2 font-medium text-right">Lojista</th>
+                  {isSuper && (
+                    <>
+                      <th className="px-3 py-2 font-medium text-right hidden sm:table-cell">Plataforma</th>
+                      <th className="px-3 py-2 font-medium text-right">Lojista</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -202,12 +217,16 @@ export function SplitSection() {
                       </td>
                       <td className="px-3 py-2 text-right num text-xs text-muted-foreground">{l.n}</td>
                       <td className="px-3 py-2 text-right num font-bold">{brl(l.total)}</td>
-                      <td className="px-3 py-2 text-right num text-xs hidden sm:table-cell text-amber-600 dark:text-amber-400">
-                        {l.plataforma > 0 ? brl(l.plataforma) : "—"}
-                      </td>
-                      <td className="px-3 py-2 text-right num text-xs text-emerald-600 dark:text-emerald-400">
-                        {l.lojista > 0 ? brl(l.lojista) : "—"}
-                      </td>
+                      {isSuper && (
+                        <>
+                          <td className="px-3 py-2 text-right num text-xs hidden sm:table-cell text-amber-600 dark:text-amber-400">
+                            {l.plataforma > 0 ? brl(l.plataforma) : "—"}
+                          </td>
+                          <td className="px-3 py-2 text-right num text-xs text-emerald-600 dark:text-emerald-400">
+                            {l.lojista > 0 ? brl(l.lojista) : "—"}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
