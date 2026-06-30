@@ -95,12 +95,12 @@ const Login = () => {
         {/* Overlay escuro para legibilidade */}
         <div className="absolute inset-0 bg-black/45" />
 
-        <div className="relative z-10 w-full flex justify-center lg:justify-start">
+        <div className="relative z-10 w-full flex justify-center">
           <BrandLogo
             width={180}
             height={130}
             className="relative z-10"
-            imgClassName="w-32 h-auto lg:w-44 xl:w-52"
+            imgClassName="w-36 h-auto sm:w-40 lg:w-48 xl:w-56"
           />
         </div>
         <div className="relative z-10 max-w-md">
