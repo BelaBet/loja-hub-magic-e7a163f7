@@ -18,6 +18,7 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import BrandLogo from "@/components/BrandLogo";
+import loginBg from "@/assets/login-bg.jpg";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -87,7 +88,7 @@ const Login = () => {
         {/* Imagem de fundo */}
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/login-bg-opt.jpg')" }}
+          style={{ backgroundImage: `url(${loginBg})` }}
         />
         {/* Overlay escuro para garantir legibilidade */}
         <div className="absolute inset-0 bg-black/40" />
