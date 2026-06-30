@@ -353,7 +353,7 @@ export default function Configuracoes() {
               <div className="flex items-center justify-between pb-2 border-b">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <h2 className="font-semibold">Split de pagamentos</h2>
+                  <h2 className="font-semibold">Repasses</h2>
                 </div>
                 {form.pagarme_recipient_id ? (
                   <Badge variant="secondary" className="bg-primary/10 text-primary">Configurado</Badge>

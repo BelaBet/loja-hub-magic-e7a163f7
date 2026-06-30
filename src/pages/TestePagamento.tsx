@@ -173,7 +173,7 @@ export default function TestePagamento() {
       pushStep(setPixSteps, {
         kind: "ok",
         label: `Order criada: ${r.order_id}`,
-        detail: `Split aplicado: ${r.split_applied ? "sim" : "não"} • Plataforma ${brl(r.platform_amount / 100)} • Loja ${brl(r.seller_amount / 100)}`,
+        detail: `Repasse aplicado: ${r.split_applied ? "sim" : "não"} • Plataforma ${brl(r.platform_amount / 100)} • Loja ${brl(r.seller_amount / 100)}`,
       });
       const vendaId = await criarVenda({
         forma_pagamento: "pix",
@@ -237,7 +237,7 @@ export default function TestePagamento() {
       pushStep(setCardSteps, {
         kind: paid ? "ok" : authorized ? "warn" : "err",
         label: `Resposta: ${r.charge_status ?? r.status}`,
-        detail: `Total ${brl(r.amount / 100)} • Split: ${r.split_applied ? "sim" : "não"} • Plataforma ${brl(r.platform_amount / 100)} • Loja ${brl(r.seller_amount / 100)}`,
+        detail: `Total ${brl(r.amount / 100)} • Repasse: ${r.split_applied ? "sim" : "não"} • Plataforma ${brl(r.platform_amount / 100)} • Loja ${brl(r.seller_amount / 100)}`,
       });
       const vendaId = await criarVenda({
         forma_pagamento: "cartao_credito",
@@ -478,7 +478,7 @@ export default function TestePagamento() {
                 <Row k="Total cobrado" v={brl(cardResult.amount / 100)} />
                 <Row k="Plataforma" v={brl(cardResult.platform_amount / 100)} />
                 <Row k="Loja recebe" v={brl(cardResult.seller_amount / 100)} />
-                <Row k="Split aplicado" v={cardResult.split_applied ? "sim" : "não"} />
+                <Row k="Repasse aplicado" v={cardResult.split_applied ? "sim" : "não"} />
               </div>
             )}
 
