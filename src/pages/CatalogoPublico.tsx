@@ -82,14 +82,22 @@ const CatalogoPublico = () => {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return produtos;
-    return produtos.filter(
+    const oos = loja?.out_of_stock_behavior ?? "show_unavailable";
+    let base = produtos;
+    if (oos === "hide") {
+      base = base.filter((p) => {
+        const qtd = p.estoque?.[0]?.quantidade;
+        return qtd === undefined || qtd === null || qtd > 0;
+      });
+    }
+    if (!s) return base;
+    return base.filter(
       (p) =>
         p.nome.toLowerCase().includes(s) ||
         p.sku?.toLowerCase().includes(s) ||
         p.categoria?.toLowerCase().includes(s),
     );
-  }, [produtos, q]);
+  }, [produtos, q, loja?.out_of_stock_behavior]);
 
   const whatsappLink = (texto: string) => {
     if (!loja?.telefone) return null;
