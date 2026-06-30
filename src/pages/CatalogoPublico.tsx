@@ -34,6 +34,12 @@ type Loja = {
   telefone: string | null;
   cor_primaria: string | null;
   cor_secundaria: string | null;
+  display_mode?: "list" | "grid" | "instaview" | null;
+  accent_color?: string | null;
+  out_of_stock_behavior?: "hide" | "show_unavailable" | "show_normal" | null;
+  banner_enabled?: boolean | null;
+  banner_image_url?: string | null;
+  banner_link_url?: string | null;
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
