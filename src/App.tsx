@@ -26,6 +26,7 @@ import WebhookAuditoria from "./pages/WebhookAuditoria.tsx";
 import TestePagamento from "./pages/TestePagamento.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
 import Perfil from "./pages/Perfil.tsx";
+import Vendedores from "./pages/Vendedores.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import RecibosLista from "./pages/RecibosLista.tsx";
 import RecibosNovo from "./pages/RecibosNovo.tsx";
@@ -73,6 +74,7 @@ const App = () => (
           <Route path="/admin/teste-pagamento" element={<TestePagamento />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/vendedores" element={<Vendedores />} />
           <Route path="/dashboard/recibos" element={<RecibosLista />} />
           <Route path="/dashboard/recibos/novo" element={<RecibosNovo />} />
           <Route path="/dashboard/recibos/templates" element={<RecibosTemplates />} />
