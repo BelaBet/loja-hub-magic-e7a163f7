@@ -108,7 +108,7 @@ const Login = () => {
             THAI encontra o lucro escondido na sua operação.
           </h1>
           <p className="mt-5 text-white/80 text-sm leading-relaxed drop-shadow">
-            Importe seus dados do Kyte em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
+            Importe seus dados em minutos e ganhe um gestor digital que transforma suas vendas, estoque e clientes em decisões práticas para aumentar o lucro.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-6 sm:gap-8 max-w-xs">
             {[
