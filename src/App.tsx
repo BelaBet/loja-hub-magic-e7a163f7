@@ -56,10 +56,6 @@ const App = () => (
           <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/catalogo/novo" element={<CatalogoNovo />} />
           <Route path="/catalogo/:id" element={<CatalogoNovo />} />
-          <Route path="/dashboard/catalogo/exibicao" element={<CatalogoConfig />} />
-          <Route path="/dashboard/catalogo/cor" element={<CatalogoConfig />} />
-          <Route path="/dashboard/catalogo/estoque" element={<CatalogoConfig />} />
-          <Route path="/dashboard/catalogo/banner" element={<CatalogoConfig />} />
           <Route path="/dashboard/catalogo/:section" element={<CatalogoConfig />} />
           <Route path="/vendas" element={<Vendas />} />
           <Route path="/pdv" element={<PDV />} />
