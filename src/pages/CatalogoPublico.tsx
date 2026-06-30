@@ -154,7 +154,12 @@ const CatalogoPublico = () => {
   const cores = {
     "--brand-primary": loja?.cor_primaria || "#3F3C7A",
     "--brand-secondary": loja?.cor_secundaria || "#D8A14A",
+    "--catalog-accent-color": loja?.accent_color || loja?.cor_primaria || "#16A34A",
   } as React.CSSProperties;
+
+  const accent = loja?.accent_color || loja?.cor_primaria || "#16A34A";
+  const mode = loja?.display_mode || "grid";
+  const oosBehavior = loja?.out_of_stock_behavior || "show_unavailable";
 
   return (
     <div className="min-h-screen bg-background" style={cores}>
