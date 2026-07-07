@@ -190,7 +190,7 @@ export default function Perfil() {
             <User className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Meu perfil</h1>
+            <h1 className="text-fluid-2xl font-bold tracking-tight">Meu perfil</h1>
             <p className="text-sm text-muted-foreground">Edite seus dados pessoais e credenciais</p>
           </div>
         </div>

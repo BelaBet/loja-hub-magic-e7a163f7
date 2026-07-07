@@ -238,8 +238,9 @@ const Estoque = () => {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Estoque</h1>
-            <p className="text-sm text-muted-foreground">
+            <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">Inventário</span>
+            <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">Estoque</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">
               Controle suas quantidades, entradas e ajustes.
             </p>
           </div>
@@ -258,31 +259,31 @@ const Estoque = () => {
         </div>
 
         {/* Cards de alerta */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Card className="p-4">
-            <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+          <Card className="p-3 sm:p-4">
+            <div className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground truncate">
               Total de produtos
             </div>
-            <div className="num text-2xl font-bold mt-1">{num(totais.total)}</div>
+            <div className="num text-fluid-kpi font-bold mt-1">{num(totais.total)}</div>
           </Card>
-          <Card className="p-4">
-            <div className="mono text-[10px] uppercase tracking-widest text-primary">
+          <Card className="p-3 sm:p-4">
+            <div className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-primary truncate">
               Em estoque
             </div>
-            <div className="num text-2xl font-bold mt-1 text-primary">{num(totais.ok)}</div>
+            <div className="num text-fluid-kpi font-bold mt-1 text-primary">{num(totais.ok)}</div>
           </Card>
           <button
             type="button"
             onClick={() => setStatusFiltro(statusFiltro === "baixo" ? "todos" : "baixo")}
             className={cn(
-              "text-left rounded-xl border bg-card p-4 transition-all hover:shadow-md",
+              "text-left rounded-xl border bg-card p-3 sm:p-4 transition-all hover:shadow-md",
               statusFiltro === "baixo" ? "border-amber-500 ring-2 ring-amber-500/20" : "border-border",
             )}
           >
-            <div className="mono text-[10px] uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-              <AlertTriangle className="h-3 w-3" /> Estoque baixo
+            <div className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-amber-600 dark:text-amber-400 flex items-center gap-1">
+              <AlertTriangle className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> <span className="truncate">Estoque baixo</span>
             </div>
-            <div className="num text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">
+            <div className="num text-fluid-kpi font-bold mt-1 text-amber-600 dark:text-amber-400">
               {num(abaixoMinimo)}
             </div>
           </button>
@@ -290,28 +291,28 @@ const Estoque = () => {
             type="button"
             onClick={() => setStatusFiltro(statusFiltro === "zerado" ? "todos" : "zerado")}
             className={cn(
-              "text-left rounded-xl border bg-card p-4 transition-all hover:shadow-md",
+              "text-left rounded-xl border bg-card p-3 sm:p-4 transition-all hover:shadow-md",
               statusFiltro === "zerado" ? "border-destructive ring-2 ring-destructive/20" : "border-border",
             )}
           >
-            <div className="mono text-[10px] uppercase tracking-widest text-destructive">
+            <div className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-destructive">
               Zerados
             </div>
-            <div className="num text-2xl font-bold mt-1 text-destructive">{num(totais.zerado)}</div>
+            <div className="num text-fluid-kpi font-bold mt-1 text-destructive">{num(totais.zerado)}</div>
           </button>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="estoque" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="estoque">Posição de estoque</TabsTrigger>
-            <TabsTrigger value="movimentacoes">Movimentações</TabsTrigger>
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="estoque" className="flex-1 sm:flex-none">Posição de estoque</TabsTrigger>
+            <TabsTrigger value="movimentacoes" className="flex-1 sm:flex-none">Movimentações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="estoque" className="space-y-4">
-            <Card className="p-4">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="relative flex-1 min-w-[200px]">
+            <Card className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por nome ou SKU…"
@@ -320,26 +321,29 @@ const Estoque = () => {
                     className="pl-9"
                   />
                 </div>
-                <Select value={statusFiltro} onValueChange={(v) => setStatusFiltro(v as StatusFiltro)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os status</SelectItem>
-                    <SelectItem value="ok">OK</SelectItem>
-                    <SelectItem value="baixo">Baixo</SelectItem>
-                    <SelectItem value="zerado">Zerado</SelectItem>
-                  </SelectContent>
-                </Select>
-                {(busca || statusFiltro !== "todos") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setBusca(""); setStatusFiltro("todos"); }}
-                  >
-                    <X className="h-4 w-4 mr-1" /> Limpar
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  <Select value={statusFiltro} onValueChange={(v) => setStatusFiltro(v as StatusFiltro)}>
+                    <SelectTrigger className="flex-1 sm:w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos os status</SelectItem>
+                      <SelectItem value="ok">OK</SelectItem>
+                      <SelectItem value="baixo">Baixo</SelectItem>
+                      <SelectItem value="zerado">Zerado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(busca || statusFiltro !== "todos") && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setBusca(""); setStatusFiltro("todos"); }}
+                      className="shrink-0"
+                    >
+                      <X className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Limpar</span>
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
 
@@ -349,11 +353,11 @@ const Estoque = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Produto</TableHead>
-                    <TableHead className="mono text-[10px] uppercase tracking-widest">SKU</TableHead>
+                    <TableHead className="mono text-[10px] uppercase tracking-widest hidden lg:table-cell">SKU</TableHead>
                     <TableHead className="text-right">Atual</TableHead>
-                    <TableHead className="text-right">Mínimo</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Mínimo</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Última mov.</TableHead>
+                    <TableHead className="hidden lg:table-cell">Última mov.</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

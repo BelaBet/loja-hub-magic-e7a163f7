@@ -283,13 +283,17 @@ export default function PDV() {
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        <div className="mb-6">
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {/* Header */}
+        <div className="mb-4 sm:mb-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h1 className="text-2xl font-semibold">PDV — Leitor de código de barras</h1>
+            <div>
+              <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">Caixa</span>
+              <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-0.5">PDV</h1>
+            </div>
             <ConnectionDot online={online} />
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Aponte o leitor USB/Bluetooth para adicionar produtos ao carrinho
           </p>
         </div>
@@ -302,9 +306,11 @@ export default function PDV() {
           className="mb-4"
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6">
-          <div className="space-y-4">
-            <div className="rounded-xl border bg-card p-4 space-y-3">
+        {/* Layout: mobile = coluna única (carrinho abaixo); lg = side-by-side */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4 sm:gap-6">
+          {/* Coluna esquerda — scanner + produto encontrado */}
+          <div className="space-y-3 sm:space-y-4">
+            <div className="rounded-xl border bg-card p-3 sm:p-4 space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Leitura de código de barras
               </p>
@@ -317,8 +323,8 @@ export default function PDV() {
             {ui.view === "found" && <ProductCard product={ui.product} onAdd={handleAdd} />}
 
             {ui.view === "not_found" && (
-              <div className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 px-4 py-3 flex items-center justify-between gap-3">
-                <p className="text-sm text-destructive">
+              <div className="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 px-3 sm:px-4 py-3 flex items-center justify-between gap-3">
+                <p className="text-sm text-destructive min-w-0 truncate">
                   Código <span className="font-mono font-medium">{ui.ean}</span> não encontrado.
                 </p>
                 <button
@@ -338,10 +344,14 @@ export default function PDV() {
               />
             )}
 
-            <ScanHistory events={history} />
+            {/* Histórico apenas em telas maiores para não poluir mobile */}
+            <div className="hidden sm:block">
+              <ScanHistory events={history} />
+            </div>
           </div>
 
-          <div className="lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-6rem)]">
+          {/* Coluna direita — carrinho: sticky em lg, normal em mobile */}
+          <div className="lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-6rem)] order-first lg:order-last">
             <CartPanel
               items={cart.items}
               total={cart.total}
