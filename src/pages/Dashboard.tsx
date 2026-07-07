@@ -608,19 +608,19 @@ const KpiCard = ({
     "text-primary bg-primary-soft";
 
   const card = (
-    <Card className={`p-4 sm:p-6 transition-all ${href ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer" : ""}`}>
-      <div className="flex items-center justify-between">
-        <span className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground leading-tight">
+    <Card className={`p-3 sm:p-4 transition-all ${href ? "hover:shadow-md hover:-translate-y-0.5 cursor-pointer" : ""}`}>
+      <div className="flex items-center justify-between gap-1">
+        <span className="mono text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground leading-tight truncate">
           {label}
         </span>
-        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-lg flex items-center justify-center shrink-0 ${toneClass}`}>
-          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+        <div className={`h-6 w-6 sm:h-7 sm:w-7 rounded-md flex items-center justify-center shrink-0 ${toneClass}`}>
+          <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
         </div>
       </div>
       {loading ? (
-        <Skeleton className="h-8 sm:h-9 w-28 sm:w-32 mt-3" />
+        <Skeleton className="h-7 sm:h-8 w-24 sm:w-28 mt-2" />
       ) : (
-        <div className="num text-fluid-3xl font-bold mt-2 sm:mt-3 tracking-tight">{value}</div>
+        <div className="num text-fluid-kpi font-bold mt-1.5 sm:mt-2 tracking-tight min-w-0 truncate">{value}</div>
       )}
       {variacao?.tem && !loading && (
         <div className="flex items-center gap-1.5 mt-2">

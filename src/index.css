@@ -123,9 +123,9 @@
 
 @layer components {
   .num {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Times New Roman', Times, Georgia, serif;
     font-feature-settings: 'tnum';
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
   }
   .mono {
     font-family: 'IBM Plex Mono', monospace;
@@ -139,10 +139,11 @@
     font-size: clamp(1.15rem, 3vw + 0.4rem, 1.5rem);
   }
 
-  /* Valor numérico grande (KPI) — nunca vaza em grid de 2 colunas */
+  /* Valor numérico KPI — nunca vaza em grid de 2 colunas (max 50% da tela) */
   .text-fluid-kpi {
-    font-size: clamp(1.1rem, 3.5vw + 0.25rem, 1.875rem);
+    font-size: clamp(0.95rem, 2.8vw + 0.2rem, 1.5rem);
     line-height: 1.15;
+    word-break: break-all;
   }
 }
 
