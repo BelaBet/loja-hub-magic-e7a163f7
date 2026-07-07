@@ -111,7 +111,7 @@ const Clientes = () => {
       <div className="max-w-6xl mx-auto space-y-5">
         <header>
           <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">CRM</span>
-          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight mt-1">Clientes</h1>
+          <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">Clientes</h1>
           <p className="text-muted-foreground text-sm mt-1">
             {linhas.length} {linhas.length === 1 ? "cliente cadastrado" : "clientes cadastrados"}
           </p>

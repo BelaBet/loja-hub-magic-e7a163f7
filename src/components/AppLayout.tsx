@@ -94,7 +94,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
-          <main className="flex-1 px-3 py-4 sm:px-6 md:px-8 md:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-8">
+          <main className="flex-1 min-w-0 px-2 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5 lg:px-8 lg:py-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:pb-8 overflow-x-hidden">
             {children}
           </main>
         </div>

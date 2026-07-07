@@ -557,7 +557,7 @@ const Vendas = () => {
             <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
               Ponto de venda
             </span>
-            <h1 className="font-display text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight mt-1">
+            <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">
               Nova venda
             </h1>
           </div>
