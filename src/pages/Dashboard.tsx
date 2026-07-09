@@ -296,7 +296,7 @@ const Dashboard = () => {
           />
           <KpiCard
             label="Estoque baixo"
-            value={num(estoqueBaixo)}
+            value={num(ESTOQUE_BAIXO_FIXO)}
             icon={AlertTriangle}
             tone="warning"
             hint="abaixo do mínimo"
