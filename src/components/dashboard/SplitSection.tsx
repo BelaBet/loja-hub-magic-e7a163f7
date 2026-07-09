@@ -161,7 +161,7 @@ export function SplitSection() {
       </div>
 
       <div className={cn("grid grid-cols-2 gap-3", isSuper ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
-        <KpiTile icon={Banknote} label="Total vendido" value={brl(TOTAL_VENDIDO_FIXO)} hint={`${TOTAL_VENDAS_FIXO} venda${TOTAL_VENDAS_FIXO === 1 ? "" : "s"}`} tone="primary" />
+        <KpiTile icon={Banknote} label="Total vendido" value={brl(TOTAL_VENDIDO_FIXO)} hint={`${TOTAL_VENDAS_FIXO} vendas`} tone="primary" />
         {isSuper && (
           <>
             <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
