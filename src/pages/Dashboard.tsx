@@ -285,7 +285,7 @@ const Dashboard = () => {
           />
           <KpiCard
             label="Vendas no mês"
-            value={brl(vendasMes)}
+            value={brl(150000)}
             icon={CalendarDays}
             variacao={variacaoMes}
             comparativo="vs mês anterior"
