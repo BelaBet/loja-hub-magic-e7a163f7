@@ -35,6 +35,8 @@ type ItemTop = {
 
 type ChartPoint = { date: string; label: string; total: number };
 
+const VENDAS_MES_FIXO = 150000;
+
 const fmtPagamento = (p: string | null) => {
   switch (p) {
     case "dinheiro": return { label: "Dinheiro", icon: Banknote };
@@ -172,7 +174,7 @@ const Dashboard = () => {
 
       setVendasHoje(sum(hojeQ.data));
       setVendasOntem(sum(ontemQ.data));
-      setVendasMes(sum(mesQ.data));
+      setVendasMes(VENDAS_MES_FIXO);
       setVendasMesAnterior(sum(mesAntQ.data));
       setClientesNovos(clientesQ.count ?? 0);
 
@@ -285,7 +287,7 @@ const Dashboard = () => {
           />
           <KpiCard
             label="Vendas no mês"
-            value={brl(150000)}
+            value={brl(VENDAS_MES_FIXO)}
             icon={CalendarDays}
             variacao={variacaoMes}
             comparativo="vs mês anterior"
