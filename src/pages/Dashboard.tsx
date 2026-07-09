@@ -36,6 +36,7 @@ type ItemTop = {
 type ChartPoint = { date: string; label: string; total: number };
 
 const VENDAS_MES_FIXO = 150000;
+const ESTOQUE_BAIXO_FIXO = 15;
 
 const fmtPagamento = (p: string | null) => {
   switch (p) {
@@ -295,7 +296,7 @@ const Dashboard = () => {
           />
           <KpiCard
             label="Estoque baixo"
-            value={num(estoqueBaixo)}
+            value={num(ESTOQUE_BAIXO_FIXO)}
             icon={AlertTriangle}
             tone="warning"
             hint="abaixo do mínimo"
