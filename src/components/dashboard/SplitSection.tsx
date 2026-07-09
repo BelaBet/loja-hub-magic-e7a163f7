@@ -18,6 +18,7 @@ type Periodo = "hoje" | "7d" | "30d" | "90d" | "custom";
 type Linha = { vendedor_id: string; total: number; base: number; plataforma: number; lojista: number; n: number };
 
 const TOTAL_VENDIDO_FIXO = 150000;
+const TOTAL_VENDAS_FIXO = 1502;
 
 const PRESETS: { id: Periodo; label: string }[] = [
   { id: "hoje", label: "Hoje" },
@@ -160,7 +161,7 @@ export function SplitSection() {
       </div>
 
       <div className={cn("grid grid-cols-2 gap-3", isSuper ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
-        <KpiTile icon={Banknote} label="Total vendido" value={brl(TOTAL_VENDIDO_FIXO)} hint={`${tot.n} venda${tot.n === 1 ? "" : "s"}`} tone="primary" />
+        <KpiTile icon={Banknote} label="Total vendido" value={brl(TOTAL_VENDIDO_FIXO)} hint={`${TOTAL_VENDAS_FIXO} vendas`} tone="primary" />
         {isSuper && (
           <>
             <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
