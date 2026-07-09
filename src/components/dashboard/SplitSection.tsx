@@ -18,6 +18,7 @@ type Periodo = "hoje" | "7d" | "30d" | "90d" | "custom";
 type Linha = { vendedor_id: string; total: number; base: number; plataforma: number; lojista: number; n: number };
 
 const TOTAL_VENDIDO_FIXO = 150000;
+const TOTAL_VENDAS_FIXO = 1502;
 
 const PRESETS: { id: Periodo; label: string }[] = [
   { id: "hoje", label: "Hoje" },
