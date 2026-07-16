@@ -105,6 +105,16 @@ export function SplitSection({ periodoRange: externalRange }: SplitSectionProps)
     [linhas],
   );
 
+  const periodoLabel = useMemo(() => {
+    if (externalRange) {
+      return `${format(externalRange.from, "dd/MM/yyyy", { locale: ptBR })} – ${format(externalRange.to, "dd/MM/yyyy", { locale: ptBR })}`;
+    }
+    if (periodo === "custom" && custom.from) {
+      return `${format(custom.from, "dd/MM/yyyy", { locale: ptBR })}${custom.to ? " – " + format(custom.to, "dd/MM/yyyy", { locale: ptBR }) : ""}`;
+    }
+    return PRESETS.find((p) => p.id === periodo)?.label ?? "";
+  }, [externalRange, periodo, custom]);
+
   return (
     <Card className="p-4 sm:p-6 space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -113,53 +123,58 @@ export function SplitSection({ periodoRange: externalRange }: SplitSectionProps)
             {isSuper ? "Vendas · repasse" : "Vendas por vendedor"}
           </span>
           <h2 className="font-display text-xl font-bold mt-1">Distribuição no período</h2>
+          {externalRange && (
+            <p className="text-xs text-muted-foreground mt-0.5">{periodoLabel}</p>
+          )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border p-1 bg-card">
-            {PRESETS.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPeriodo(p.id)}
-                className={cn(
-                  "mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-md transition-colors",
-                  periodo === p.id
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+        {!externalRange && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-lg border border-border p-1 bg-card">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setPeriodo(p.id)}
+                  className={cn(
+                    "mono text-[10px] uppercase tracking-widest px-3 py-1.5 rounded-md transition-colors",
+                    periodo === p.id
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={periodo === "custom" ? "default" : "outline"}
+                  size="sm"
+                  className="h-9 gap-2"
+                  onClick={() => setPeriodo("custom")}
+                >
+                  <CalendarIcon className="h-3.5 w-3.5" />
+                  {periodo === "custom" && custom.from
+                    ? `${format(custom.from, "dd/MM", { locale: ptBR })}${custom.to ? " – " + format(custom.to, "dd/MM", { locale: ptBR }) : ""}`
+                    : "Personalizado"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="range"
+                  selected={{ from: custom.from, to: custom.to }}
+                  onSelect={(r) => setCustom({ from: r?.from, to: r?.to })}
+                  numberOfMonths={1}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={periodo === "custom" ? "default" : "outline"}
-                size="sm"
-                className="h-9 gap-2"
-                onClick={() => setPeriodo("custom")}
-              >
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {periodo === "custom" && custom.from
-                  ? `${format(custom.from, "dd/MM", { locale: ptBR })}${custom.to ? " – " + format(custom.to, "dd/MM", { locale: ptBR }) : ""}`
-                  : "Personalizado"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                mode="range"
-                selected={{ from: custom.from, to: custom.to }}
-                onSelect={(r) => setCustom({ from: r?.from, to: r?.to })}
-                numberOfMonths={1}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        )}
       </div>
 
       <div className={cn("grid grid-cols-2 gap-3", isSuper ? "lg:grid-cols-4" : "lg:grid-cols-1")}>
