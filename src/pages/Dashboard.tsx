@@ -15,6 +15,16 @@ import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { SplitSection } from "@/components/dashboard/SplitSection";
+import {
+  PeriodoFilter,
+  PeriodoPreset,
+  PeriodoRange,
+  formatPeriodoLabel,
+  periodoAnterior,
+  periodoRange,
+} from "@/components/dashboard/PeriodoFilter";
+import { addDays, differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 type Venda = {
   id: string;
@@ -35,7 +45,6 @@ type ItemTop = {
 
 type ChartPoint = { date: string; label: string; total: number };
 
-const VENDAS_MES_FIXO = 150000;
 const ESTOQUE_BAIXO_FIXO = 15;
 
 const fmtPagamento = (p: string | null) => {
@@ -54,16 +63,20 @@ const fmtHora = (iso: string) =>
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
+  // Filtro de período global
+  const [preset, setPreset] = useState<PeriodoPreset>("30d");
+  const [range, setRange] = useState<PeriodoRange>(() => periodoRange("30d"));
+
   // KPIs
-  const [vendasHoje, setVendasHoje] = useState(0);
-  const [vendasOntem, setVendasOntem] = useState(0);
-  const [vendasMes, setVendasMes] = useState(0);
-  const [vendasMesAnterior, setVendasMesAnterior] = useState(0);
+  const [vendasPeriodo, setVendasPeriodo] = useState(0);
+  const [vendasPeriodoQtd, setVendasPeriodoQtd] = useState(0);
+  const [vendasAnterior, setVendasAnterior] = useState(0);
+  const [vendasAnteriorQtd, setVendasAnteriorQtd] = useState(0);
   const [estoqueBaixo, setEstoqueBaixo] = useState(0);
   const [estoqueZerado, setEstoqueZerado] = useState(0);
   const [clientesNovos, setClientesNovos] = useState(0);
 
-  //
+  // Pagamentos (mantém janela de 7 dias para online)
   const [pgPendentes, setPgPendentes] = useState(0);
   const [pgPagos, setPgPagos] = useState(0);
   const [pgFalhou, setPgFalhou] = useState(0);
@@ -73,6 +86,8 @@ const Dashboard = () => {
   const [chart, setChart] = useState<ChartPoint[]>([]);
   const [topProdutos, setTopProdutos] = useState<ItemTop[]>([]);
   const [ultimasVendas, setUltimasVendas] = useState<Venda[]>([]);
+
+  const anterior = useMemo(() => periodoAnterior(range), [range]);
 
   useEffect(() => {
     void carregar();
@@ -93,7 +108,7 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [range.from.toISOString(), range.to.toISOString()]);
 
   const carregarPagarme = async () => {
     const dias7 = new Date(); dias7.setDate(dias7.getDate() - 7);
@@ -121,62 +136,56 @@ const Dashboard = () => {
   const carregar = async () => {
     setLoading(true);
     try {
-      const agora = new Date();
-      const hojeIni = new Date(agora); hojeIni.setHours(0, 0, 0, 0);
-      const hojeFim = new Date(agora); hojeFim.setHours(23, 59, 59, 999);
-      const ontemIni = new Date(hojeIni); ontemIni.setDate(ontemIni.getDate() - 1);
-      const ontemFim = new Date(ontemIni); ontemFim.setHours(23, 59, 59, 999);
-      const mesIni = new Date(agora.getFullYear(), agora.getMonth(), 1);
-      const mesAntIni = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
-      const mesAntFim = new Date(agora.getFullYear(), agora.getMonth(), 0, 23, 59, 59, 999);
-      const dias30Ini = new Date(agora); dias30Ini.setDate(dias30Ini.getDate() - 29); dias30Ini.setHours(0, 0, 0, 0);
+      const fromIso = range.from.toISOString();
+      const toIso = range.to.toISOString();
+      const antFromIso = anterior.from.toISOString();
+      const antToIso = anterior.to.toISOString();
 
       const [
-        hojeQ, ontemQ, mesQ, mesAntQ,
+        periodoQ, anteriorQ,
         estoqueQ, clientesQ,
-        vendas30Q, ultimasQ, itensMesQ,
+        vendasPeriodoQ, ultimasQ, itensPeriodoQ,
       ] = await Promise.all([
         supabase.from("vendas").select("total")
           .eq("status", "concluida")
-          .gte("created_at", hojeIni.toISOString())
-          .lte("created_at", hojeFim.toISOString()),
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso),
         supabase.from("vendas").select("total")
           .eq("status", "concluida")
-          .gte("created_at", ontemIni.toISOString())
-          .lte("created_at", ontemFim.toISOString()),
-        supabase.from("vendas").select("total")
-          .eq("status", "concluida")
-          .gte("created_at", mesIni.toISOString()),
-        supabase.from("vendas").select("total")
-          .eq("status", "concluida")
-          .gte("created_at", mesAntIni.toISOString())
-          .lte("created_at", mesAntFim.toISOString()),
+          .gte("created_at", antFromIso)
+          .lte("created_at", antToIso),
         supabase.from("estoque").select("quantidade, quantidade_minima"),
         supabase.from("clientes").select("id", { count: "exact", head: true })
-          .gte("created_at", mesIni.toISOString()),
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso),
         supabase.from("vendas").select("total, created_at")
           .eq("status", "concluida")
-          .gte("created_at", dias30Ini.toISOString())
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
           .order("created_at", { ascending: true }),
         supabase.from("vendas")
           .select("id, total, created_at, forma_pagamento, cliente_id, pagamento_status, clientes(nome)")
           .eq("status", "concluida")
+          .gte("created_at", fromIso)
+          .lte("created_at", toIso)
           .order("created_at", { ascending: false })
           .limit(5),
         supabase.from("venda_itens")
           .select("produto_id, quantidade, subtotal, vendas!inner(created_at, status), produtos(nome)")
           .eq("vendas.status", "concluida")
-          .gte("vendas.created_at", mesIni.toISOString())
+          .gte("vendas.created_at", fromIso)
+          .lte("vendas.created_at", toIso)
           .limit(5000),
       ]);
 
       const sum = (rows: { total: number | string | null }[] | null) =>
         (rows ?? []).reduce((s, v) => s + Number(v.total ?? 0), 0);
+      const count = (rows: unknown[] | null) => rows?.length ?? 0;
 
-      setVendasHoje(sum(hojeQ.data));
-      setVendasOntem(sum(ontemQ.data));
-      setVendasMes(VENDAS_MES_FIXO);
-      setVendasMesAnterior(sum(mesAntQ.data));
+      setVendasPeriodo(sum(periodoQ.data));
+      setVendasPeriodoQtd(count(periodoQ.data));
+      setVendasAnterior(sum(anteriorQ.data));
+      setVendasAnteriorQtd(count(anteriorQ.data));
       setClientesNovos(clientesQ.count ?? 0);
 
       const est = estoqueQ.data ?? [];
@@ -189,13 +198,14 @@ const Dashboard = () => {
       );
       setEstoqueZerado(est.filter((e) => Number(e.quantidade) <= 0).length);
 
-      // Chart 30 dias
+      // Chart no período selecionado
+      const days = Math.max(0, differenceInCalendarDays(range.to, range.from));
       const map = new Map<string, number>();
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(dias30Ini); d.setDate(d.getDate() + i);
+      for (let i = 0; i <= days; i++) {
+        const d = addDays(startOfDay(range.from), i);
         map.set(d.toISOString().slice(0, 10), 0);
       }
-      for (const v of vendas30Q.data ?? []) {
+      for (const v of vendasPeriodoQ.data ?? []) {
         const key = new Date(v.created_at).toISOString().slice(0, 10);
         map.set(key, (map.get(key) ?? 0) + Number(v.total ?? 0));
       }
@@ -203,7 +213,9 @@ const Dashboard = () => {
         const d = new Date(date + "T12:00:00");
         return {
           date,
-          label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+          label: days > 90
+            ? d.toLocaleDateString("pt-BR", { month: "2-digit" })
+            : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
           total,
         };
       });
@@ -211,9 +223,9 @@ const Dashboard = () => {
 
       setUltimasVendas((ultimasQ.data ?? []) as unknown as Venda[]);
 
-      // Top 5 produtos do mês
+      // Top 5 produtos do período
       const agg = new Map<string, ItemTop>();
-      for (const it of (itensMesQ.data ?? []) as unknown as Array<{
+      for (const it of (itensPeriodoQ.data ?? []) as unknown as Array<{
         produto_id: string | null;
         quantidade: number | string;
         subtotal: number | string | null;
@@ -242,20 +254,31 @@ const Dashboard = () => {
     }
   };
 
-  const variacaoDia = useMemo(() => calcVariacao(vendasHoje, vendasOntem), [vendasHoje, vendasOntem]);
-  const variacaoMes = useMemo(() => calcVariacao(vendasMes, vendasMesAnterior), [vendasMes, vendasMesAnterior]);
+  const variacaoValor = useMemo(() => calcVariacao(vendasPeriodo, vendasAnterior), [vendasPeriodo, vendasAnterior]);
+  const variacaoQtd = useMemo(() => calcVariacao(vendasPeriodoQtd, vendasAnteriorQtd), [vendasPeriodoQtd, vendasAnteriorQtd]);
+  const ticketMedio = useMemo(() =>
+    vendasPeriodoQtd > 0 ? vendasPeriodo / vendasPeriodoQtd : 0,
+  [vendasPeriodo, vendasPeriodoQtd]);
+
+  const handlePeriodoChange = (newRange: PeriodoRange, newPreset: PeriodoPreset) => {
+    setRange(newRange);
+    setPreset(newPreset);
+  };
 
   return (
     <AppLayout>
       <div className="max-w-7xl mx-auto space-y-6">
-        <header>
-          <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
-            Visão geral
-          </span>
-          <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">Dashboard</h1>
-          <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-            Acompanhe vendas, estoque e clientes em tempo real.
-          </p>
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              Visão geral
+            </span>
+            <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-1">Dashboard</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+              Acompanhe vendas, estoque e clientes em tempo real.
+            </p>
+          </div>
+          <PeriodoFilter value={range} preset={preset} onChange={handlePeriodoChange} />
         </header>
 
         {/* Banner estoque zerado */}
@@ -279,22 +302,24 @@ const Dashboard = () => {
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <KpiCard
-            label="Vendas hoje"
-            value={brl(vendasHoje)}
+            label="Vendas no período"
+            value={brl(vendasPeriodo)}
             icon={Banknote}
-            variacao={variacaoDia}
-            comparativo="vs ontem"
+            variacao={variacaoValor}
+            comparativo="vs período anterior"
             loading={loading}
-            empty={!loading && vendasHoje <= 0}
-            emptyMessage="Sem vendas hoje"
+            empty={!loading && vendasPeriodo <= 0}
+            emptyMessage="Sem vendas no período"
           />
           <KpiCard
-            label="Vendas no mês"
-            value={brl(VENDAS_MES_FIXO)}
-            icon={CalendarDays}
-            variacao={variacaoMes}
-            comparativo="vs mês anterior"
+            label="Total de vendas"
+            value={num(vendasPeriodoQtd)}
+            icon={ShoppingBag}
+            variacao={variacaoQtd}
+            comparativo="vs período anterior"
             loading={loading}
+            empty={!loading && vendasPeriodoQtd <= 0}
+            emptyMessage="Sem vendas no período"
           />
           <KpiCard
             label="Estoque baixo"
@@ -311,7 +336,7 @@ const Dashboard = () => {
             label="Clientes novos"
             value={num(clientesNovos)}
             icon={Users}
-            hint="cadastrados no mês"
+            hint="cadastrados no período"
             loading={loading}
             empty={!loading && clientesNovos <= 0}
             emptyMessage="Sem clientes novos"
@@ -319,7 +344,7 @@ const Dashboard = () => {
         </div>
 
         {/* Total vendido + split por vendedor com filtro de data */}
-        <SplitSection />
+        <SplitSection periodoRange={range} />
 
         {/* Gráfico */}
         <Card className="p-4 sm:p-6">
@@ -328,12 +353,17 @@ const Dashboard = () => {
               <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Faturamento
               </span>
-              <h2 className="font-display text-fluid-2xl font-bold mt-1">Últimos 30 dias</h2>
+              <h2 className="font-display text-fluid-2xl font-bold mt-1">{formatPeriodoLabel(range)}</h2>
             </div>
           </div>
           <div className="h-[180px] sm:h-72">
             {loading ? (
               <Skeleton className="h-full w-full" />
+            ) : chart.length === 0 || chart.every((p) => p.total === 0) ? (
+              <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground">
+                <CalendarDays className="h-8 w-8 mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma venda no período selecionado.</p>
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chart} margin={{ top: 10, right: 4, left: 0, bottom: 0 }}>
@@ -442,7 +472,7 @@ const Dashboard = () => {
                 <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Mais vendidos
                 </span>
-                <h2 className="font-display text-fluid-2xl font-bold mt-1">Top 5 do mês</h2>
+                <h2 className="font-display text-fluid-2xl font-bold mt-1">Top 5 do período</h2>
               </div>
               <Package className="h-4 w-4 text-muted-foreground" />
             </div>
@@ -452,7 +482,7 @@ const Dashboard = () => {
               </div>
             ) : topProdutos.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
-                Sem vendas registradas neste mês.
+                Sem vendas registradas no período.
               </p>
             ) : (
               <div className="space-y-1">
@@ -488,7 +518,7 @@ const Dashboard = () => {
                 <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">
                   Atividade
                 </span>
-                <h2 className="font-display text-fluid-2xl font-bold mt-1">Últimas 5 vendas</h2>
+                <h2 className="font-display text-fluid-2xl font-bold mt-1">Últimas vendas</h2>
               </div>
               <Link to="/vendas/historico" className="text-xs text-primary hover:underline">
                 Ver tudo
@@ -500,7 +530,7 @@ const Dashboard = () => {
               </div>
             ) : ultimasVendas.length === 0 ? (
               <p className="text-sm text-muted-foreground py-6 text-center">
-                Ainda não há vendas registradas.
+                Ainda não há vendas registradas no período.
               </p>
             ) : (
               <div className="space-y-1">
@@ -518,7 +548,7 @@ const Dashboard = () => {
                         </span>
                         <span className="text-sm font-medium truncate">
                           {v.clientes?.nome ?? "Sem cliente"}
-                        </span>
+                    </span>
                       </div>
                       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <Badge variant="outline" className="text-[10px] gap-1 hidden xs:inline-flex sm:inline-flex">
