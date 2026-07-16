@@ -285,6 +285,8 @@ const Dashboard = () => {
             variacao={variacaoDia}
             comparativo="vs ontem"
             loading={loading}
+            empty={!loading && vendasHoje <= 0}
+            emptyMessage="Sem vendas hoje"
           />
           <KpiCard
             label="Vendas no mês"
@@ -302,6 +304,8 @@ const Dashboard = () => {
             hint="abaixo do mínimo"
             href="/estoque"
             loading={loading}
+            empty={!loading && ESTOQUE_BAIXO_FIXO <= 0}
+            emptyMessage="Estoque ok"
           />
           <KpiCard
             label="Clientes novos"
@@ -309,6 +313,8 @@ const Dashboard = () => {
             icon={Users}
             hint="cadastrados no mês"
             loading={loading}
+            empty={!loading && clientesNovos <= 0}
+            emptyMessage="Sem clientes novos"
           />
         </div>
 
