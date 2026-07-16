@@ -34,19 +34,11 @@ const PRESETS: { id: Periodo; label: string }[] = [
   { id: "ano", label: "Ano" },
 ];
 
-function rangeFor(p: Periodo, custom: { from?: Date; to?: Date }): { from: Date; to: Date } {
-  const to = endOfDay(new Date());
-  if (p === "hoje") return { from: startOfDay(new Date()), to };
-  if (p === "7d") return { from: startOfDay(subDays(new Date(), 6)), to };
-  if (p === "30d") return { from: startOfDay(subDays(new Date(), 29)), to };
-  if (p === "90d") return { from: startOfDay(subDays(new Date(), 89)), to };
-  return {
-    from: custom.from ? startOfDay(custom.from) : startOfDay(subDays(new Date(), 29)),
-    to: custom.to ? endOfDay(custom.to) : to,
-  };
+function rangeFor(p: Periodo, custom: { from?: Date; to?: Date }): PeriodoRange {
+  return periodoRange(p, custom);
 }
 
-export function SplitSection() {
+export function SplitSection({ periodoRange: externalRange }: SplitSectionProps) {
   const [periodo, setPeriodo] = useState<Periodo>("30d");
   const [custom, setCustom] = useState<{ from?: Date; to?: Date }>({});
   const [loading, setLoading] = useState(true);
@@ -54,7 +46,10 @@ export function SplitSection() {
   const [meuId, setMeuId] = useState<string | null>(null);
   const [isSuper, setIsSuper] = useState(false);
 
-  const range = useMemo(() => rangeFor(periodo, custom), [periodo, custom]);
+  const range = useMemo(() => {
+    if (externalRange) return externalRange;
+    return rangeFor(periodo, custom);
+  }, [externalRange, periodo, custom]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMeuId(data.user?.id ?? null));
