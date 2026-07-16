@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { format, startOfDay, endOfDay, subDays } from "date-fns";
+import { format, startOfDay, endOfDay, subDays, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,14 @@ import { cn } from "@/lib/utils";
 import {
   Banknote, Wallet, Building2, UserCircle2, CalendarIcon, TrendingUp,
 } from "lucide-react";
+import { PeriodoPreset, PeriodoRange, periodoRange } from "@/components/dashboard/PeriodoFilter";
 
-type Periodo = "hoje" | "7d" | "30d" | "90d" | "custom";
+type Periodo = PeriodoPreset;
 type Linha = { vendedor_id: string; total: number; base: number; plataforma: number; lojista: number; n: number };
+
+type SplitSectionProps = {
+  periodoRange?: PeriodoRange;
+};
 
 const TOTAL_VENDIDO_FIXO = 150000;
 const TOTAL_VENDAS_FIXO = 1502;
@@ -25,6 +30,8 @@ const PRESETS: { id: Periodo; label: string }[] = [
   { id: "7d", label: "7 dias" },
   { id: "30d", label: "30 dias" },
   { id: "90d", label: "90 dias" },
+  { id: "mes", label: "Mês" },
+  { id: "ano", label: "Ano" },
 ];
 
 function rangeFor(p: Periodo, custom: { from?: Date; to?: Date }): { from: Date; to: Date } {
