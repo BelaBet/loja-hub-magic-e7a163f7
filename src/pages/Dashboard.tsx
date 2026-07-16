@@ -285,6 +285,8 @@ const Dashboard = () => {
             variacao={variacaoDia}
             comparativo="vs ontem"
             loading={loading}
+            empty={!loading && vendasHoje <= 0}
+            emptyMessage="Sem vendas hoje"
           />
           <KpiCard
             label="Vendas no mês"
@@ -302,6 +304,8 @@ const Dashboard = () => {
             hint="abaixo do mínimo"
             href="/estoque"
             loading={loading}
+            empty={!loading && ESTOQUE_BAIXO_FIXO <= 0}
+            emptyMessage="Estoque ok"
           />
           <KpiCard
             label="Clientes novos"
@@ -309,6 +313,8 @@ const Dashboard = () => {
             icon={Users}
             hint="cadastrados no mês"
             loading={loading}
+            empty={!loading && clientesNovos <= 0}
+            emptyMessage="Sem clientes novos"
           />
         </div>
 
@@ -593,7 +599,8 @@ const PagamentoStatusBadge = ({ status }: { status: string }) => {
 };
 
 const KpiCard = ({
-  label, value, icon: Icon, tone, hint, variacao, comparativo, href, loading,
+  label, value, icon: Icon, tone, hint, variacao, comparativo, href, loading, empty,
+  emptyMessage = "Sem dados",
 }: {
   label: string;
   value: string;
@@ -604,6 +611,8 @@ const KpiCard = ({
   comparativo?: string;
   href?: string;
   loading?: boolean;
+  empty?: boolean;
+  emptyMessage?: string;
 }) => {
   const toneClass =
     tone === "warning" ? "text-amber-600 dark:text-amber-400 bg-amber-500/10" :
@@ -622,10 +631,14 @@ const KpiCard = ({
       </div>
       {loading ? (
         <Skeleton className="h-7 sm:h-8 w-24 sm:w-28 mt-2" />
+      ) : empty ? (
+        <div className="text-sm sm:text-base text-muted-foreground font-medium mt-1.5 sm:mt-2 truncate">
+          {emptyMessage}
+        </div>
       ) : (
         <div className="num text-fluid-kpi font-bold mt-1.5 sm:mt-2 tracking-tight min-w-0 truncate">{value}</div>
       )}
-      {variacao?.tem && !loading && (
+      {variacao?.tem && !loading && !empty && (
         <div className="flex items-center gap-1.5 mt-2">
           <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
             variacao.positiva ? "text-primary" : "text-destructive"
@@ -638,7 +651,7 @@ const KpiCard = ({
           )}
         </div>
       )}
-      {hint && !variacao?.tem && !loading && (
+      {hint && !variacao?.tem && !loading && !empty && (
         <div className="mono text-[10px] text-muted-foreground mt-2 uppercase tracking-wider">
           {hint}
         </div>
