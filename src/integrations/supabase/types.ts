@@ -287,8 +287,6 @@ export type Database = {
       lojas: {
         Row: {
           accent_color: string
-          background_image_url: string | null
-          background_type: string
           banner_enabled: boolean
           banner_image_url: string | null
           banner_link_url: string | null
@@ -305,8 +303,6 @@ export type Database = {
           nome: string
           onboarding_completo: boolean
           out_of_stock_behavior: string
-          overlay_color: string
-          overlay_opacity: number
           pagarme_recipient_id: string | null
           plano: string
           recibo_config: Json
@@ -315,8 +311,6 @@ export type Database = {
         }
         Insert: {
           accent_color?: string
-          background_image_url?: string | null
-          background_type?: string
           banner_enabled?: boolean
           banner_image_url?: string | null
           banner_link_url?: string | null
@@ -333,8 +327,6 @@ export type Database = {
           nome: string
           onboarding_completo?: boolean
           out_of_stock_behavior?: string
-          overlay_color?: string
-          overlay_opacity?: number
           pagarme_recipient_id?: string | null
           plano?: string
           recibo_config?: Json
@@ -343,8 +335,6 @@ export type Database = {
         }
         Update: {
           accent_color?: string
-          background_image_url?: string | null
-          background_type?: string
           banner_enabled?: boolean
           banner_image_url?: string | null
           banner_link_url?: string | null
@@ -361,8 +351,6 @@ export type Database = {
           nome?: string
           onboarding_completo?: boolean
           out_of_stock_behavior?: string
-          overlay_color?: string
-          overlay_opacity?: number
           pagarme_recipient_id?: string | null
           plano?: string
           recibo_config?: Json
