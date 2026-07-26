@@ -9,11 +9,13 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
 import { toast } from "sonner";
-import { Check, ImageIcon, ShoppingCart, Upload, Loader2, List, Grid3x3, Smartphone } from "lucide-react";
+import { Check, ImageIcon, ShoppingCart, Upload, Loader2, List, Grid3x3, Smartphone, X, Image as ImageBgIcon } from "lucide-react";
 import { brl } from "@/lib/format";
+import { BACKGROUND_PRESETS, type BackgroundType } from "@/lib/catalogBackgrounds";
 
 type DisplayMode = "list" | "grid" | "instaview";
 type OOSBehavior = "hide" | "show_unavailable" | "show_normal";
@@ -25,6 +27,10 @@ type Config = {
   banner_enabled: boolean;
   banner_image_url: string | null;
   banner_link_url: string | null;
+  background_type: BackgroundType;
+  background_image_url: string | null;
+  overlay_color: string;
+  overlay_opacity: number;
 };
 
 const COLOR_SUGGESTIONS = [
@@ -39,6 +45,10 @@ const DEFAULTS: Config = {
   banner_enabled: false,
   banner_image_url: null,
   banner_link_url: null,
+  background_type: "none",
+  background_image_url: null,
+  overlay_color: "#000000",
+  overlay_opacity: 40,
 };
 
 const TAB_BY_SECTION: Record<string, string> = {
@@ -46,6 +56,7 @@ const TAB_BY_SECTION: Record<string, string> = {
   cor: "cor",
   estoque: "estoque",
   banner: "banner",
+  fundo: "fundo",
 };
 
 export default function CatalogoConfig() {
@@ -64,7 +75,7 @@ export default function CatalogoConfig() {
       setLoading(true);
       const { data, error } = await supabase
         .from("lojas")
-        .select("display_mode, accent_color, out_of_stock_behavior, banner_enabled, banner_image_url, banner_link_url")
+        .select("display_mode, accent_color, out_of_stock_behavior, banner_enabled, banner_image_url, banner_link_url, background_type, background_image_url, overlay_color, overlay_opacity")
         .eq("id", lojaAtivaId)
         .maybeSingle();
       if (error) toast.error("Erro ao carregar configurações");
@@ -109,6 +120,31 @@ export default function CatalogoConfig() {
     setUploading(false);
   };
 
+  const [uploadingBg, setUploadingBg] = useState(false);
+
+  const onBackgroundFile = async (file: File) => {
+    if (!lojaAtivaId) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Imagem muito grande (máx. 5MB)");
+      return;
+    }
+    setUploadingBg(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `backgrounds/${lojaAtivaId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("produtos").upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+    if (error) {
+      setUploadingBg(false);
+      toast.error("Falha no upload");
+      return;
+    }
+    const { data } = supabase.storage.from("produtos").getPublicUrl(path);
+    setCfg((c) => ({ ...c, background_type: "custom_image", background_image_url: data.publicUrl }));
+    setUploadingBg(false);
+  };
+
   return (
     <AppLayout>
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
@@ -118,11 +154,12 @@ export default function CatalogoConfig() {
         </header>
 
         <Tabs defaultValue={tabDefault} className="space-y-4">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 h-auto">
+          <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto">
             <TabsTrigger value="exibicao">Modo de exibição</TabsTrigger>
             <TabsTrigger value="cor">Cor principal</TabsTrigger>
             <TabsTrigger value="estoque">Sem estoque</TabsTrigger>
             <TabsTrigger value="banner">Banner</TabsTrigger>
+            <TabsTrigger value="fundo">Plano de fundo</TabsTrigger>
           </TabsList>
 
           {/* MODO DE EXIBIÇÃO */}
@@ -270,6 +307,128 @@ export default function CatalogoConfig() {
               </div>
             </Card>
           </TabsContent>
+
+          {/* PLANO DE FUNDO */}
+          <TabsContent value="fundo">
+            <Card className="p-5 space-y-6">
+              <BackgroundPreview
+                type={cfg.background_type}
+                imageUrl={cfg.background_image_url}
+                overlayColor={cfg.overlay_color}
+                overlayOpacity={cfg.overlay_opacity}
+              />
+
+              <div className="space-y-3">
+                <Label className="text-base">Plano de fundo</Label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCfg((c) => ({ ...c, background_type: "none" }))}
+                    className="h-20 rounded-lg border-2 flex flex-col items-center justify-center gap-1 bg-white text-muted-foreground transition-colors"
+                    style={{ borderColor: cfg.background_type === "none" ? "hsl(var(--primary))" : undefined }}
+                  >
+                    {cfg.background_type === "none" && <Check className="h-4 w-4 text-foreground" />}
+                    <span className="text-xs font-medium">Nenhum</span>
+                  </button>
+                  {(Object.entries(BACKGROUND_PRESETS) as [Exclude<BackgroundType, "none" | "custom_image">, { label: string; css: string }][]).map(
+                    ([key, preset]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setCfg((c) => ({ ...c, background_type: key, background_image_url: null }))}
+                        className="h-20 rounded-lg border-2 flex items-end justify-start p-2 relative overflow-hidden transition-transform hover:scale-[1.02]"
+                        style={{
+                          background: preset.css,
+                          borderColor: cfg.background_type === key ? "hsl(var(--primary))" : "transparent",
+                        }}
+                      >
+                        {cfg.background_type === key && (
+                          <span className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-white/90 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-foreground" />
+                          </span>
+                        )}
+                        <span className="text-[11px] font-semibold text-white drop-shadow">{preset.label}</span>
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-base">Ou envie uma imagem própria</Label>
+                <p className="text-xs text-muted-foreground">JPG, PNG ou WebP · máximo 5MB.</p>
+                {cfg.background_type === "custom_image" && cfg.background_image_url ? (
+                  <div className="relative rounded-lg overflow-hidden border aspect-[16/9] bg-muted">
+                    <img src={cfg.background_image_url} alt="Fundo" className="h-full w-full object-cover" />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      className="absolute top-2 right-2 h-8 w-8"
+                      onClick={() => setCfg((c) => ({ ...c, background_type: "none", background_image_url: null }))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button asChild variant="outline" disabled={uploadingBg}>
+                    <label className="cursor-pointer">
+                      {uploadingBg ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                      Escolher imagem
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && onBackgroundFile(e.target.files[0])}
+                      />
+                    </label>
+                  </Button>
+                )}
+              </div>
+
+              {cfg.background_type !== "none" && (
+                <div className="space-y-5 pt-2 border-t">
+                  <p className="text-sm font-medium pt-4">Ajustes da imagem</p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Opacidade do overlay</Label>
+                      <span className="mono text-xs text-muted-foreground">{cfg.overlay_opacity}%</span>
+                    </div>
+                    <div className="py-3 -my-3">
+                      <Slider
+                        value={[cfg.overlay_opacity]}
+                        onValueChange={([v]) => setCfg((c) => ({ ...c, overlay_opacity: v }))}
+                        min={0}
+                        max={80}
+                        step={1}
+                        className="[&_[role=slider]]:h-7 [&_[role=slider]]:w-7 [&_[role=slider]]:touch-none py-[13px]"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      O overlay escurece (ou clareia) o fundo para garantir que o texto fique legível.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor do overlay</Label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={cfg.overlay_color}
+                        onChange={(e) => setCfg((c) => ({ ...c, overlay_color: e.target.value }))}
+                        className="h-12 w-16 rounded-lg border cursor-pointer"
+                      />
+                      <Input
+                        value={cfg.overlay_color}
+                        onChange={(e) => setCfg((c) => ({ ...c, overlay_color: e.target.value }))}
+                        placeholder="#000000"
+                        className="font-mono uppercase max-w-[140px]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
         </Tabs>
 
         <div className="sticky bottom-0 bg-background/95 backdrop-blur border-t -mx-4 px-4 py-3 flex justify-end gap-2">
@@ -340,6 +499,65 @@ function DisplayModePreview({ mode, accent }: { mode: DisplayMode; accent: strin
           <div className="h-2 w-1/2 mt-1 rounded" style={{ background: accent }} />
         </div>
       ))}
+    </div>
+  );
+}
+
+function BackgroundPreview({
+  type,
+  imageUrl,
+  overlayColor,
+  overlayOpacity,
+}: {
+  type: BackgroundType;
+  imageUrl: string | null;
+  overlayColor: string;
+  overlayOpacity: number;
+}) {
+  const bg =
+    type === "custom_image" && imageUrl
+      ? undefined
+      : type !== "none" && type !== "custom_image"
+        ? BACKGROUND_PRESETS[type].css
+        : undefined;
+
+  return (
+    <div className="rounded-lg border bg-muted/30 p-4 flex justify-center">
+      <div className="relative w-full max-w-xs aspect-[9/16] rounded-xl overflow-hidden border shadow-sm bg-white">
+        {type === "none" ? (
+          <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <ImageBgIcon className="h-8 w-8 opacity-30" />
+            <span className="text-xs">Catálogo sem fundo</span>
+          </div>
+        ) : (
+          <>
+            <div
+              className="absolute inset-0"
+              style={{
+                background: bg,
+                backgroundImage: type === "custom_image" && imageUrl ? `url(${imageUrl})` : undefined,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            />
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: overlayColor, opacity: overlayOpacity / 100 }}
+            />
+            <div className="absolute inset-0 flex flex-col p-3 gap-2">
+              <div className="h-8 rounded-md bg-white/25 backdrop-blur-sm" />
+              <div className="flex-1 grid grid-cols-2 gap-2 mt-2">
+                {[0, 1].map((i) => (
+                  <div key={i} className="rounded-lg bg-white/90 backdrop-blur-sm p-2">
+                    <div className="aspect-square rounded bg-muted" />
+                    <div className="h-2 w-3/4 mt-2 rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

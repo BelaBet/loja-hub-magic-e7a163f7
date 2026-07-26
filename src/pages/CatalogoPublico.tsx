@@ -15,6 +15,8 @@ import { CartDrawer } from "@/components/catalogo/CartDrawer";
 import { CheckoutForm, type CheckoutData } from "@/components/catalogo/CheckoutForm";
 import { buildOrderWhatsAppMessage } from "@/lib/buildOrderWhatsAppMessage";
 import { whatsappDigits } from "@/components/recibos/masks";
+import { BACKGROUND_PRESETS, isDarkOrImageBackground, type BackgroundType } from "@/lib/catalogBackgrounds";
+import { cn } from "@/lib/utils";
 
 type ProdutoPub = {
   id: string;
@@ -40,6 +42,10 @@ type Loja = {
   banner_enabled?: boolean | null;
   banner_image_url?: string | null;
   banner_link_url?: string | null;
+  background_type?: BackgroundType | null;
+  background_image_url?: string | null;
+  overlay_color?: string | null;
+  overlay_opacity?: number | null;
 };
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -161,11 +167,46 @@ const CatalogoPublico = () => {
   const mode = loja?.display_mode || "grid";
   const oosBehavior = loja?.out_of_stock_behavior || "show_unavailable";
 
+  const bgType: BackgroundType = loja?.background_type || "none";
+  const hasBg = bgType !== "none";
+  const overlayColor = loja?.overlay_color || "#000000";
+  const overlayOpacity = loja?.overlay_opacity ?? 40;
+  const glassy = hasBg && isDarkOrImageBackground(bgType);
+
   return (
-    <div className="min-h-screen bg-background" style={cores}>
+    <div className={cn("min-h-screen", !hasBg && "bg-background")} style={cores}>
+      {hasBg && (
+        <>
+          <div
+            className="fixed inset-0 -z-10"
+            style={{
+              background: bgType === "preset_1" || bgType === "preset_2" || bgType === "preset_3"
+                ? BACKGROUND_PRESETS[bgType].css
+                : undefined,
+              backgroundImage: bgType === "custom_image" && loja?.background_image_url
+                ? `url(${loja.background_image_url})`
+                : undefined,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+          />
+          <div
+            className="fixed inset-0 -z-[5]"
+            style={{ backgroundColor: overlayColor, opacity: overlayOpacity / 100 }}
+          />
+        </>
+      )}
       <header
-        className="border-b sticky top-0 z-10 text-white"
-        style={{ background: "var(--brand-primary)" }}
+        className={cn(
+          "border-b sticky top-0 z-10 text-white",
+          hasBg && "backdrop-blur-md border-white/10",
+        )}
+        style={{
+          backgroundColor: hasBg
+            ? `color-mix(in srgb, var(--brand-primary) 75%, transparent)`
+            : "var(--brand-primary)",
+        }}
       >
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
           {loja?.logo_url ? (
@@ -225,11 +266,11 @@ const CatalogoPublico = () => {
         </div>
       )}
 
-      <main className="max-w-6xl mx-auto px-4 py-5">
+      <main className="relative z-[1] max-w-6xl mx-auto px-4 py-5">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="p-0 overflow-hidden">
+              <Card key={i} className={cn("p-0 overflow-hidden", hasBg && "bg-white/92 backdrop-blur-sm")}>
                 <Skeleton className="aspect-square w-full" />
                 <div className="p-4 space-y-2">
                   <Skeleton className="h-4 w-3/4" />
@@ -239,7 +280,7 @@ const CatalogoPublico = () => {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className={cn("p-12 text-center", hasBg && "bg-white/92 backdrop-blur-sm")}>
             <Package className="h-10 w-10 mx-auto text-muted-foreground opacity-40" />
             <p className="mt-3 text-muted-foreground">Nenhum produto encontrado</p>
           </Card>
@@ -253,6 +294,7 @@ const CatalogoPublico = () => {
             handleAdd={handleAdd}
             setPreview={setPreview}
             oosBehavior={oosBehavior}
+            hasBg={hasBg}
           />
         )}
       </main>
@@ -304,7 +346,12 @@ const CatalogoPublico = () => {
         )}
       </ResponsiveModal>
 
-      <footer className="py-8 text-center mono text-[10px] uppercase tracking-widest text-muted-foreground">
+      <footer
+        className={cn(
+          "relative z-[1] py-8 text-center mono text-[10px] uppercase tracking-widest",
+          hasBg ? "text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.4)]" : "text-muted-foreground",
+        )}
+      >
         Catálogo digital
       </footer>
 
@@ -343,9 +390,10 @@ type GridProps = {
   handleAdd: (p: ProdutoPub) => void;
   setPreview: (p: ProdutoPub) => void;
   oosBehavior: "hide" | "show_unavailable" | "show_normal";
+  hasBg?: boolean;
 };
 
-function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, setPreview, oosBehavior }: GridProps) {
+function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, setPreview, oosBehavior, hasBg }: GridProps) {
   const stockOf = (p: ProdutoPub) => p.estoque?.[0]?.quantidade ?? null;
   const isOOS = (p: ProdutoPub) => {
     const q = stockOf(p);
@@ -361,7 +409,10 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
           const foto = p.fotos?.[0];
           const unavailable = treatAsUnavailable(p);
           return (
-            <Card key={p.id} className={`p-3 flex gap-3 items-center ${unavailable ? "opacity-60" : ""}`}>
+            <Card
+              key={p.id}
+              className={cn("p-3 flex gap-3 items-center", unavailable && "opacity-60", hasBg && "bg-white/92 backdrop-blur-sm")}
+            >
               <button onClick={() => setPreview(p)} className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
                 {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                   : <Package className="h-6 w-6 m-auto mt-5 text-muted-foreground opacity-40" />}
@@ -399,7 +450,10 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
           const estoqueQtd = stockOf(p);
           const qty = qtyByProduct[p.id] ?? 1;
           return (
-            <Card key={p.id} className={`p-0 overflow-hidden ${unavailable ? "opacity-60" : ""}`}>
+            <Card
+              key={p.id}
+              className={cn("p-0 overflow-hidden", unavailable && "opacity-60", hasBg && "bg-white/92 backdrop-blur-sm")}
+            >
               <button onClick={() => setPreview(p)} className="block w-full aspect-square bg-muted">
                 {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                   : <Package className="h-16 w-16 m-auto mt-20 text-muted-foreground opacity-30" />}
@@ -435,7 +489,14 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
         const estoqueQtd = stockOf(p);
         const qty = qtyByProduct[p.id] ?? 1;
         return (
-          <Card key={p.id} className={`p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col ${unavailable ? "opacity-60" : ""}`}>
+          <Card
+            key={p.id}
+            className={cn(
+              "p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col",
+              unavailable && "opacity-60",
+              hasBg && "bg-white/92 backdrop-blur-sm",
+            )}
+          >
             <div className="relative aspect-square bg-muted cursor-pointer" onClick={() => setPreview(p)}>
               {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                 : <div className="h-full w-full flex items-center justify-center"><Package className="h-10 w-10 text-muted-foreground opacity-30" /></div>}
