@@ -15,7 +15,7 @@ import { CartDrawer } from "@/components/catalogo/CartDrawer";
 import { CheckoutForm, type CheckoutData } from "@/components/catalogo/CheckoutForm";
 import { buildOrderWhatsAppMessage } from "@/lib/buildOrderWhatsAppMessage";
 import { whatsappDigits } from "@/components/recibos/masks";
-import { BACKGROUND_PRESETS, isDarkOrImageBackground, type BackgroundType } from "@/lib/catalogBackgrounds";
+import { BACKGROUND_PRESETS, type BackgroundType } from "@/lib/catalogBackgrounds";
 import { cn } from "@/lib/utils";
 
 type ProdutoPub = {
@@ -171,7 +171,11 @@ const CatalogoPublico = () => {
   const hasBg = bgType !== "none";
   const overlayColor = loja?.overlay_color || "#000000";
   const overlayOpacity = loja?.overlay_opacity ?? 40;
-  const glassy = hasBg && isDarkOrImageBackground(bgType);
+
+  const activePreset = bgType !== "none" && bgType !== "custom_image" ? BACKGROUND_PRESETS[bgType] : undefined;
+  const bgCss = activePreset?.kind === "gradient" ? activePreset.css : undefined;
+  const bgImage =
+    bgType === "custom_image" ? loja?.background_image_url ?? undefined : activePreset?.kind === "photo" ? activePreset.image : undefined;
 
   return (
     <div className={cn("min-h-screen", !hasBg && "bg-background")} style={cores}>
@@ -180,12 +184,8 @@ const CatalogoPublico = () => {
           <div
             className="fixed inset-0 -z-10"
             style={{
-              background: bgType === "preset_1" || bgType === "preset_2" || bgType === "preset_3"
-                ? BACKGROUND_PRESETS[bgType].css
-                : undefined,
-              backgroundImage: bgType === "custom_image" && loja?.background_image_url
-                ? `url(${loja.background_image_url})`
-                : undefined,
+              background: bgCss,
+              backgroundImage: bgImage ? `url(${bgImage})` : undefined,
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
