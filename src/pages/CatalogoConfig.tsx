@@ -16,7 +16,7 @@ import { useLoja } from "@/contexts/LojaContext";
 import { toast } from "sonner";
 import { Check, ImageIcon, ShoppingCart, Upload, Loader2, List, Grid3x3, Smartphone, X, Image as ImageBgIcon } from "lucide-react";
 import { brl } from "@/lib/format";
-import { BACKGROUND_PRESETS, type BackgroundType } from "@/lib/catalogBackgrounds";
+import { BACKGROUND_PRESETS, defaultOverlayFor, type BackgroundType } from "@/lib/catalogBackgrounds";
 
 type DisplayMode = "list" | "grid" | "instaview";
 type OOSBehavior = "hide" | "show_unavailable" | "show_normal";
@@ -59,6 +59,19 @@ const TAB_BY_SECTION: Record<string, string> = {
   banner: "banner",
   fundo: "fundo",
 };
+
+const presetEntries = Object.entries(BACKGROUND_PRESETS) as [
+  Exclude<BackgroundType, "none" | "custom_image">,
+  (typeof BACKGROUND_PRESETS)[keyof typeof BACKGROUND_PRESETS],
+][];
+const gradientPresets = presetEntries.filter(([, p]) => p.kind === "gradient") as [
+  Exclude<BackgroundType, "none" | "custom_image">,
+  { kind: "gradient"; label: string; css: string },
+][];
+const photoPresets = presetEntries.filter(([, p]) => p.kind === "photo") as [
+  Exclude<BackgroundType, "none" | "custom_image">,
+  { kind: "photo"; label: string; image: string },
+][];
 
 export default function CatalogoConfig() {
   const { section } = useParams<{ section?: string }>();
@@ -142,7 +155,12 @@ export default function CatalogoConfig() {
       return;
     }
     const { data } = supabase.storage.from("produtos").getPublicUrl(path);
-    setCfg((c) => ({ ...c, background_type: "custom_image", background_image_url: data.publicUrl }));
+    setCfg((c) => ({
+      ...c,
+      background_type: "custom_image",
+      background_image_url: data.publicUrl,
+      ...defaultOverlayFor("custom_image"),
+    }));
     setUploadingBg(false);
   };
 
@@ -321,7 +339,7 @@ export default function CatalogoConfig() {
 
               <div className="space-y-3">
                 <Label className="text-base">Plano de fundo</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                   <button
                     type="button"
                     onClick={() => setCfg((c) => ({ ...c, background_type: "none" }))}
@@ -331,27 +349,37 @@ export default function CatalogoConfig() {
                     {cfg.background_type === "none" && <Check className="h-4 w-4 text-foreground" />}
                     <span className="text-xs font-medium">Nenhum</span>
                   </button>
-                  {(Object.entries(BACKGROUND_PRESETS) as [Exclude<BackgroundType, "none" | "custom_image">, { label: string; css: string }][]).map(
-                    ([key, preset]) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setCfg((c) => ({ ...c, background_type: key, background_image_url: null }))}
-                        className="h-20 rounded-lg border-2 flex items-end justify-start p-2 relative overflow-hidden transition-transform hover:scale-[1.02]"
-                        style={{
-                          background: preset.css,
-                          borderColor: cfg.background_type === key ? "hsl(var(--primary))" : "transparent",
-                        }}
-                      >
-                        {cfg.background_type === key && (
-                          <span className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-white/90 flex items-center justify-center">
-                            <Check className="h-3 w-3 text-foreground" />
-                          </span>
-                        )}
-                        <span className="text-[11px] font-semibold text-white drop-shadow">{preset.label}</span>
-                      </button>
-                    ),
-                  )}
+                  {gradientPresets.map(([key, preset]) => (
+                    <PresetTile
+                      key={key}
+                      selected={cfg.background_type === key}
+                      style={{ background: preset.css }}
+                      label={preset.label}
+                      onClick={() =>
+                        setCfg((c) => ({ ...c, background_type: key, background_image_url: null, ...defaultOverlayFor(key) }))
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base">Fotos de ambientes de loja</Label>
+                <p className="text-xs text-muted-foreground">
+                  Imagens prontas de vitrines e provadores. Um véu fosco é aplicado por cima automaticamente para as peças do catálogo se destacarem.
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {photoPresets.map(([key, preset]) => (
+                    <PresetTile
+                      key={key}
+                      selected={cfg.background_type === key}
+                      style={{ backgroundImage: `url(${preset.image})`, backgroundSize: "cover", backgroundPosition: "center" }}
+                      label={preset.label}
+                      onClick={() =>
+                        setCfg((c) => ({ ...c, background_type: key, background_image_url: null, ...defaultOverlayFor(key) }))
+                      }
+                    />
+                  ))}
                 </div>
               </div>
 
@@ -504,6 +532,35 @@ function DisplayModePreview({ mode, accent }: { mode: DisplayMode; accent: strin
   );
 }
 
+function PresetTile({
+  selected,
+  style,
+  label,
+  onClick,
+}: {
+  selected: boolean;
+  style: React.CSSProperties;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="h-20 rounded-lg border-2 flex items-end justify-start p-2 relative overflow-hidden transition-transform hover:scale-[1.02]"
+      style={{ ...style, borderColor: selected ? "hsl(var(--primary))" : "transparent" }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/0 to-black/0" />
+      {selected && (
+        <span className="absolute top-1.5 right-1.5 h-5 w-5 rounded-full bg-white/90 flex items-center justify-center z-10">
+          <Check className="h-3 w-3 text-foreground" />
+        </span>
+      )}
+      <span className="relative z-10 text-[11px] font-semibold text-white drop-shadow">{label}</span>
+    </button>
+  );
+}
+
 function BackgroundPreview({
   type,
   imageUrl,
@@ -515,12 +572,9 @@ function BackgroundPreview({
   overlayColor: string;
   overlayOpacity: number;
 }) {
-  const bg =
-    type === "custom_image" && imageUrl
-      ? undefined
-      : type !== "none" && type !== "custom_image"
-        ? BACKGROUND_PRESETS[type].css
-        : undefined;
+  const preset = type !== "none" && type !== "custom_image" ? BACKGROUND_PRESETS[type] : undefined;
+  const bg = preset?.kind === "gradient" ? preset.css : undefined;
+  const previewImage = type === "custom_image" ? imageUrl : preset?.kind === "photo" ? preset.image : null;
 
   return (
     <div className="rounded-lg border bg-muted/30 p-4 flex justify-center">
@@ -536,7 +590,7 @@ function BackgroundPreview({
               className="absolute inset-0"
               style={{
                 background: bg,
-                backgroundImage: type === "custom_image" && imageUrl ? `url(${imageUrl})` : undefined,
+                backgroundImage: previewImage ? `url(${previewImage})` : undefined,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }}
