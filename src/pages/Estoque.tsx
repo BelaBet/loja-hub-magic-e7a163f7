@@ -18,8 +18,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { num } from "@/lib/format";
 import {
   Search, Plus, ClipboardList, AlertTriangle, Package,
-  ArrowDownToLine, ArrowUpFromLine, Sliders, ArrowLeftRight, X,
+  ArrowDownToLine, ArrowUpFromLine, Sliders, ArrowLeftRight, X, Flame, Bell,
 } from "lucide-react";
+import { toast } from "sonner";
 import { EntradaEstoqueDialog } from "@/components/estoque/EntradaEstoqueDialog";
 import { AjusteInventarioDialog } from "@/components/estoque/AjusteInventarioDialog";
 import { cn } from "@/lib/utils";
@@ -95,6 +96,7 @@ const Estoque = () => {
   const [entradaOpen, setEntradaOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [queimaAvisado, setQueimaAvisado] = useState(false);
 
   const toggleExpanded = (id: string) => {
     setExpanded((cur) => {
@@ -301,6 +303,39 @@ const Estoque = () => {
             <div className="num text-fluid-kpi font-bold mt-1 text-destructive">{num(totais.zerado)}</div>
           </button>
         </div>
+
+        {/* Quadro: funcionalidade futura de queima de estoque */}
+        <Card className="relative overflow-hidden p-4 sm:p-5 border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Flame className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display font-semibold">Quero vender todo meu estoque</h3>
+                <Badge variant="outline" className="mono text-[9px] uppercase tracking-widest border-primary/30 text-primary bg-primary/5">
+                  Em breve
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                Um modo de liquidação pra zerar produtos parados de uma vez: desconto em massa,
+                catálogo de queima e divulgação automática pros seus clientes.
+              </p>
+            </div>
+            <Button
+              variant={queimaAvisado ? "secondary" : "outline"}
+              disabled={queimaAvisado}
+              className="shrink-0 min-h-[40px] w-full sm:w-auto"
+              onClick={() => {
+                setQueimaAvisado(true);
+                toast.success("Anotado! Você será avisada assim que esse recurso estiver disponível.");
+              }}
+            >
+              <Bell className="h-3.5 w-3.5 mr-1.5" />
+              {queimaAvisado ? "Você será avisada" : "Quero ser avisada"}
+            </Button>
+          </div>
+        </Card>
 
         {/* Tabs */}
         <Tabs defaultValue="estoque" className="space-y-4">
