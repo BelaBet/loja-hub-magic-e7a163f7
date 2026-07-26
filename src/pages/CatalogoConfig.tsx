@@ -1,3 +1,4 @@
+import { traduzErro } from "@/lib/errors";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
