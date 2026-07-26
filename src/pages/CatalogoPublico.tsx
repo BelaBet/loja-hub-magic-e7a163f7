@@ -177,6 +177,10 @@ const CatalogoPublico = () => {
   const bgImage =
     bgType === "custom_image" ? loja?.background_image_url ?? undefined : activePreset?.kind === "photo" ? activePreset.image : undefined;
 
+  // Cards ganham fundo mais opaco, sombra e um contorno sutil pra se destacarem
+  // do plano de fundo (evita que fiquem "lavados" contra o overlay fosco).
+  const glassCard = hasBg && "bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur-sm";
+
   return (
     <div className={cn("min-h-screen", !hasBg && "bg-background")} style={cores}>
       {hasBg && (
@@ -200,11 +204,11 @@ const CatalogoPublico = () => {
       <header
         className={cn(
           "border-b sticky top-0 z-10 text-white",
-          hasBg && "backdrop-blur-md border-white/10",
+          hasBg && "backdrop-blur-md border-white/10 shadow-lg",
         )}
         style={{
           backgroundColor: hasBg
-            ? `color-mix(in srgb, var(--brand-primary) 75%, transparent)`
+            ? `color-mix(in srgb, var(--brand-primary) 88%, transparent)`
             : "var(--brand-primary)",
         }}
       >
@@ -270,7 +274,7 @@ const CatalogoPublico = () => {
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className={cn("p-0 overflow-hidden", hasBg && "bg-white/92 backdrop-blur-sm")}>
+              <Card key={i} className={cn("p-0 overflow-hidden", glassCard)}>
                 <Skeleton className="aspect-square w-full" />
                 <div className="p-4 space-y-2">
                   <Skeleton className="h-4 w-3/4" />
@@ -280,7 +284,7 @@ const CatalogoPublico = () => {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <Card className={cn("p-12 text-center", hasBg && "bg-white/92 backdrop-blur-sm")}>
+          <Card className={cn("p-12 text-center", glassCard)}>
             <Package className="h-10 w-10 mx-auto text-muted-foreground opacity-40" />
             <p className="mt-3 text-muted-foreground">Nenhum produto encontrado</p>
           </Card>
@@ -402,6 +406,11 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
   const treatAsUnavailable = (p: ProdutoPub) =>
     isOOS(p) && oosBehavior === "show_unavailable";
 
+  // Fundo mais opaco + sombra + contorno sutil pra o card se destacar do plano de
+  // fundo; a imagem do produto ganha um anel interno pra não "sumir" dentro do card.
+  const glassCard = hasBg && "bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur-sm";
+  const imageFrame = hasBg && "ring-1 ring-inset ring-black/10";
+
   if (mode === "list") {
     return (
       <div className="flex flex-col gap-2">
@@ -411,9 +420,9 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
           return (
             <Card
               key={p.id}
-              className={cn("p-3 flex gap-3 items-center", unavailable && "opacity-60", hasBg && "bg-white/92 backdrop-blur-sm")}
+              className={cn("p-3 flex gap-3 items-center", unavailable && "opacity-60", glassCard)}
             >
-              <button onClick={() => setPreview(p)} className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
+              <button onClick={() => setPreview(p)} className={cn("h-16 w-16 rounded bg-muted overflow-hidden shrink-0", imageFrame)}>
                 {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                   : <Package className="h-6 w-6 m-auto mt-5 text-muted-foreground opacity-40" />}
               </button>
@@ -452,9 +461,9 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
           return (
             <Card
               key={p.id}
-              className={cn("p-0 overflow-hidden", unavailable && "opacity-60", hasBg && "bg-white/92 backdrop-blur-sm")}
+              className={cn("p-0 overflow-hidden", unavailable && "opacity-60", glassCard)}
             >
-              <button onClick={() => setPreview(p)} className="block w-full aspect-square bg-muted">
+              <button onClick={() => setPreview(p)} className={cn("block w-full aspect-square bg-muted", imageFrame)}>
                 {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                   : <Package className="h-16 w-16 m-auto mt-20 text-muted-foreground opacity-30" />}
               </button>
@@ -494,10 +503,10 @@ function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, set
             className={cn(
               "p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col",
               unavailable && "opacity-60",
-              hasBg && "bg-white/92 backdrop-blur-sm",
+              glassCard,
             )}
           >
-            <div className="relative aspect-square bg-muted cursor-pointer" onClick={() => setPreview(p)}>
+            <div className={cn("relative aspect-square bg-muted cursor-pointer", imageFrame)} onClick={() => setPreview(p)}>
               {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
                 : <div className="h-full w-full flex items-center justify-center"><Package className="h-10 w-10 text-muted-foreground opacity-30" /></div>}
               {unavailable && (
