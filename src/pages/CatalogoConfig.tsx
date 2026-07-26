@@ -118,14 +118,14 @@ export default function CatalogoConfig() {
     if (!lojaAtivaId) return;
     setUploading(true);
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `banners/${lojaAtivaId}/${Date.now()}.${ext}`;
+    const path = `${lojaAtivaId}/banners/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("produtos").upload(path, file, {
       cacheControl: "3600",
       upsert: true,
     });
     if (error) {
       setUploading(false);
-      toast.error("Falha no upload");
+      toast.error(`Falha no upload: ${error.message}`);
       return;
     }
     const { data } = supabase.storage.from("produtos").getPublicUrl(path);
@@ -143,14 +143,14 @@ export default function CatalogoConfig() {
     }
     setUploadingBg(true);
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `backgrounds/${lojaAtivaId}/${Date.now()}.${ext}`;
+    const path = `${lojaAtivaId}/backgrounds/${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("produtos").upload(path, file, {
       cacheControl: "3600",
       upsert: true,
     });
     if (error) {
       setUploadingBg(false);
-      toast.error("Falha no upload");
+      toast.error(`Falha no upload: ${error.message}`);
       return;
     }
     const { data } = supabase.storage.from("produtos").getPublicUrl(path);
