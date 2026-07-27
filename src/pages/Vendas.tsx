@@ -28,6 +28,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner, ConnectionDot } from "@/components/OfflineBanner";
 import { useLoja } from "@/contexts/LojaContext";
+import { useCoupon } from "@/hooks/useCoupon";
+import { CouponInput } from "@/components/pdv/CouponInput";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,7 +76,7 @@ const PAGAMENTOS: { id: Pagamento; label: string; icon: typeof Banknote }[] = [
 
 const Vendas = () => {
   const { lojaAtivaId } = useLoja();
-  const { online, syncing, pendingCount, syncNow } = useOfflineSync();
+  const { online, syncing, pendingCount, pendingSales, syncNow, discardSale, retrySale } = useOfflineSync();
   const searchRef = useRef<HTMLInputElement>(null);
   const [busca, setBusca] = useState("");
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -305,11 +307,14 @@ const Vendas = () => {
   };
 
   const subtotal = cart.reduce((a, i) => a + i.preco_unit * i.quantidade, 0);
-  const desconto = useMemo(() => {
+  const coupon = useCoupon(subtotal);
+  const descontoManual = useMemo(() => {
     const v = Number(descontoValor) || 0;
     if (descontoTipo === "percent") return Math.min(subtotal, (subtotal * v) / 100);
     return Math.min(subtotal, v);
   }, [descontoValor, descontoTipo, subtotal]);
+  const couponDiscount = coupon.appliedCoupon?.discount_amount ?? 0;
+  const desconto = Math.min(subtotal, descontoManual + couponDiscount);
   const total = Math.max(0, subtotal - desconto);
   const troco = pagamento === "dinheiro" ? Math.max(0, Number(recebido || 0) - total) : 0;
 
@@ -420,6 +425,18 @@ const Vendas = () => {
     const loja_id = lojaIdData as string | null;
     const { data: userData } = await supabase.auth.getUser();
     if (!loja_id) { setFinalizando(false); toast.error("Não foi possível identificar sua loja."); return null; }
+
+    let couponReserved = false;
+    if (coupon.appliedCoupon) {
+      const ok = await coupon.useCouponUsage(coupon.appliedCoupon.coupon.id);
+      if (!ok) {
+        setFinalizando(false);
+        toast.error("Este cupom acabou de esgotar. Remova-o para continuar.");
+        return null;
+      }
+      couponReserved = true;
+    }
+
     const { data: vendaIns, error: vErr } = await supabase
       .from("vendas")
       .insert({
@@ -428,13 +445,20 @@ const Vendas = () => {
         vendedor_id: userData.user?.id ?? null,
         vendedor_nome: vendedorNome,
         total, desconto,
+        coupon_code: coupon.appliedCoupon?.coupon.code ?? null,
+        coupon_discount: couponDiscount,
         forma_pagamento: pagamento,
         status: "concluida",
         pagamento_status: "pendente",
         payment_channel: "pos",
       })
       .select("id, created_at").single();
-    if (vErr || !vendaIns) { setFinalizando(false); toast.error(traduzErro(vErr, "Erro ao registrar venda")); return null; }
+    if (vErr || !vendaIns) {
+      if (couponReserved && coupon.appliedCoupon) await coupon.releaseCouponUsage(coupon.appliedCoupon.coupon.id);
+      setFinalizando(false);
+      toast.error(traduzErro(vErr, "Erro ao registrar venda"));
+      return null;
+    }
     // Atualiza recibo_url agora que temos o id
     const reciboUrl = `${window.location.origin}/vendas/${vendaIns.id}/recibo`;
     await supabase.from("vendas").update({ recibo_url: reciboUrl }).eq("id", vendaIns.id);
@@ -445,10 +469,12 @@ const Vendas = () => {
     if (iErr) {
       // Reverte a venda já criada para não deixar registro órfão sem itens.
       await supabase.from("vendas").delete().eq("id", vendaIns.id);
+      if (couponReserved && coupon.appliedCoupon) await coupon.releaseCouponUsage(coupon.appliedCoupon.coupon.id);
       setFinalizando(false);
       toast.error(traduzErro(iErr));
       return null;
     }
+    coupon.removeCoupon();
     setFinalizando(false);
     setVendaPendente({ id: vendaIns.id, created_at: vendaIns.created_at });
     return vendaIns.id;
@@ -474,6 +500,17 @@ const Vendas = () => {
       return;
     }
 
+    let couponReserved = false;
+    if (coupon.appliedCoupon) {
+      const ok = await coupon.useCouponUsage(coupon.appliedCoupon.coupon.id);
+      if (!ok) {
+        setFinalizando(false);
+        toast.error("Este cupom acabou de esgotar. Remova-o para continuar.");
+        return;
+      }
+      couponReserved = true;
+    }
+
     const { data: vendaIns, error: vErr } = await supabase
       .from("vendas")
       .insert({
@@ -483,6 +520,8 @@ const Vendas = () => {
         vendedor_nome: vendedorNome,
         total,
         desconto,
+        coupon_code: coupon.appliedCoupon?.coupon.code ?? null,
+        coupon_discount: couponDiscount,
         forma_pagamento: pagamento,
         status: "concluida",
         pagarme_order_id: pagarmeInfo?.order_id ?? null,
@@ -497,6 +536,7 @@ const Vendas = () => {
       .select("id, created_at")
       .single();
     if (vErr || !vendaIns) {
+      if (couponReserved && coupon.appliedCoupon) await coupon.releaseCouponUsage(coupon.appliedCoupon.coupon.id);
       setFinalizando(false);
       toast.error(traduzErro(vErr, "Erro ao registrar venda"));
       return;
@@ -515,10 +555,12 @@ const Vendas = () => {
     if (iErr) {
       // Reverte a venda já criada para não deixar registro órfão sem itens.
       await supabase.from("vendas").delete().eq("id", vendaIns.id);
+      if (couponReserved && coupon.appliedCoupon) await coupon.releaseCouponUsage(coupon.appliedCoupon.coupon.id);
       setFinalizando(false);
       toast.error(traduzErro(iErr));
       return;
     }
+    coupon.removeCoupon();
 
     setFinalizando(false);
     setSucesso({
@@ -549,6 +591,7 @@ const Vendas = () => {
     setPagamento("dinheiro");
     setRecebido("");
     setDescontoValor("");
+    coupon.removeCoupon();
     setBusca("");
     setSucesso(null);
     setTimeout(() => searchRef.current?.focus(), 50);
@@ -582,6 +625,9 @@ const Vendas = () => {
           pendingCount={pendingCount}
           syncing={syncing}
           onSync={syncNow}
+          pendingSales={pendingSales}
+          onDiscardSale={discardSale}
+          onRetrySale={retrySale}
           className="mb-4"
         />
 
@@ -920,6 +966,27 @@ const Vendas = () => {
                 </div>
               </div>
 
+              {/* Cupom de desconto */}
+              <div>
+                <label className="mono text-[10px] uppercase tracking-widest text-muted-foreground block mb-1.5">
+                  Cupom
+                </label>
+                <CouponInput
+                  appliedCoupon={coupon.appliedCoupon}
+                  loading={coupon.loading}
+                  error={coupon.error}
+                  onApply={async (code) => {
+                    const r = await coupon.validateAndApply(code, subtotal);
+                    if (r.success && r.discount_amount != null) {
+                      toast.success(`Cupom aplicado — economia de ${brl(r.discount_amount)}`);
+                    } else if (r.error) {
+                      toast.error(r.error);
+                    }
+                  }}
+                  onRemove={coupon.removeCoupon}
+                />
+              </div>
+
               {/* Pagamento */}
               <div>
                 <label className="mono text-[10px] uppercase tracking-widest text-muted-foreground block mb-1.5">
@@ -1001,10 +1068,16 @@ const Vendas = () => {
                   <span>Subtotal</span>
                   <span className="num">{brl(subtotal)}</span>
                 </div>
-                {desconto > 0 && (
+                {descontoManual > 0 && (
                   <div className="flex justify-between text-destructive">
                     <span>Desconto</span>
-                    <span className="num">- {brl(desconto)}</span>
+                    <span className="num">- {brl(descontoManual)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                    <span>Cupom {coupon.appliedCoupon?.coupon.code}</span>
+                    <span className="num">- {brl(couponDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between items-baseline pt-2">

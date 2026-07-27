@@ -30,8 +30,9 @@ export interface PendingSale {
   coupon_discount: number;
   items: PendingSaleItem[];
   created_at: number;
-  status: "pending_sync" | "syncing" | "synced" | "error";
+  status: "pending_sync" | "syncing" | "synced" | "error" | "failed";
   last_error?: string;
+  attempts?: number;
 }
 
 class OfflineDB extends Dexie {
@@ -70,4 +71,17 @@ export async function queuePendingSale(sale: Omit<PendingSale, "id" | "status" |
     status: "pending_sync",
     created_at: Date.now(),
   });
+}
+
+// Descarta permanentemente uma venda offline (ex.: caixa decidiu registrar
+// manualmente após revisar o estoque, em vez de deixar tentando sincronizar).
+export async function discardPendingSale(id: number) {
+  await offlineDb.pendingSales.delete(id);
+}
+
+// Coloca a venda de volta na fila para uma nova tentativa manual de sync,
+// zerando o contador de tentativas (usado quando o caixa já resolveu o
+// problema, ex.: repôs o estoque).
+export async function retryPendingSale(id: number) {
+  await offlineDb.pendingSales.update(id, { status: "pending_sync", attempts: 0, last_error: undefined });
 }

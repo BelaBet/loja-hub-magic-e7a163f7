@@ -28,7 +28,7 @@ export default function PDV() {
   const { lojaAtivaId, lojaAtiva } = useLoja();
   const cart = usePDVCart();
   const coupon = useCoupon(cart.total);
-  const { online, syncing, pendingCount, syncNow } = useOfflineSync();
+  const { online, syncing, pendingCount, pendingSales, syncNow, discardSale, retrySale } = useOfflineSync();
   const [ui, setUi] = useState<UIState>({ view: "idle" });
   const [scanLoading, setScanLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -324,6 +324,9 @@ export default function PDV() {
           pendingCount={pendingCount}
           syncing={syncing}
           onSync={syncNow}
+          pendingSales={pendingSales}
+          onDiscardSale={discardSale}
+          onRetrySale={retrySale}
           className="mb-4"
         />
 

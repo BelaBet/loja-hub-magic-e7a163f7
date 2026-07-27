@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { offlineDb, type PendingSale } from "@/lib/offlineDb";
+import { offlineDb, type PendingSale, discardPendingSale, retryPendingSale } from "@/lib/offlineDb";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,7 +30,10 @@ export function useOfflineSync() {
         .toArray();
       for (const sale of queue) {
         if (sale.id == null) continue;
-        await offlineDb.pendingSales.update(sale.id, { status: "syncing" });
+        const attempts = (sale.attempts ?? 0) + 1;
+        const isFirstAttempt = attempts === 1;
+        await offlineDb.pendingSales.update(sale.id, { status: "syncing", attempts });
+        let stockBlocked = false;
         try {
           const { data: venda, error: vErr } = await supabase
             .from("vendas")
@@ -61,18 +64,24 @@ export function useOfflineSync() {
               // ocorreu de fato (sem internet), então não basta descartar:
               // removemos a venda órfã (sem itens) e deixamos um alerta para
               // a loja revisar manualmente e decidir como tratar o estoque.
+              // É um bloqueio determinístico (não transitório) — vai pra
+              // status terminal "failed" já na primeira falha, em vez de
+              // ficar tentando de novo a cada reconexão/sync manual.
               await supabase.from("vendas").delete().eq("id", venda.id);
-              await (supabase.from as any)("alertas_operacionais").insert({
-                loja_id: sale.loja_id,
-                tipo: "venda_offline_bloqueada_estoque",
-                titulo: "Venda offline não sincronizada — estoque insuficiente",
-                detalhe:
-                  `Uma venda feita offline (total R$ ${sale.total.toFixed(2).replace(".", ",")}) não pôde ser sincronizada ` +
-                  `porque o estoque de um dos produtos ficou insuficiente entre a venda e a sincronização. ` +
-                  `A venda já ocorreu de fato — revise o estoque e registre-a manualmente. ` +
-                  `Detalhe técnico: ${iErr.message}`,
-                referencia_id: null,
-              });
+              stockBlocked = true;
+              if (isFirstAttempt) {
+                await (supabase.from as any)("alertas_operacionais").insert({
+                  loja_id: sale.loja_id,
+                  tipo: "venda_offline_bloqueada_estoque",
+                  titulo: "Venda offline não sincronizada — estoque insuficiente",
+                  detalhe:
+                    `Uma venda feita offline (total R$ ${sale.total.toFixed(2).replace(".", ",")}) não pôde ser sincronizada ` +
+                    `porque o estoque de um dos produtos ficou insuficiente entre a venda e a sincronização. ` +
+                    `A venda já ocorreu de fato — revise o estoque e registre-a manualmente. ` +
+                    `Detalhe técnico: ${iErr.message}`,
+                  referencia_id: null,
+                });
+              }
               throw iErr;
             }
           }
@@ -111,8 +120,13 @@ export function useOfflineSync() {
           await offlineDb.pendingSales.update(sale.id, { status: "synced" });
         } catch (e: any) {
           console.error("[offline-sync] sale failed", e);
+          // Bloqueio de estoque é terminal na hora. Outros erros (rede, etc.)
+          // ainda podem ser transitórios — tenta de novo em reconexões
+          // futuras, mas desiste após 3 tentativas pra não ficar reprocessando
+          // (e gerando alerta) pra sempre.
+          const terminal = stockBlocked || attempts >= 3;
           await offlineDb.pendingSales.update(sale.id, {
-            status: "error",
+            status: terminal ? "failed" : "error",
             last_error: e?.message ?? "unknown",
           });
         }
@@ -157,5 +171,22 @@ export function useOfflineSync() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online]);
 
-  return { online, syncing, pendingCount, pendingSales: pendingSales ?? [], syncNow };
+  const discardSale = useCallback(async (id: number) => {
+    await discardPendingSale(id);
+  }, []);
+
+  const retrySale = useCallback(async (id: number) => {
+    await retryPendingSale(id);
+    void syncNow();
+  }, [syncNow]);
+
+  return {
+    online,
+    syncing,
+    pendingCount,
+    pendingSales: pendingSales ?? [],
+    syncNow,
+    discardSale,
+    retrySale,
+  };
 }
