@@ -27,6 +27,7 @@ import { PDVMaquininhaModal } from "@/components/PDVMaquininhaModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 import { OfflineBanner, ConnectionDot } from "@/components/OfflineBanner";
+import { useLoja } from "@/contexts/LojaContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +73,7 @@ const PAGAMENTOS: { id: Pagamento; label: string; icon: typeof Banknote }[] = [
 ];
 
 const Vendas = () => {
+  const { lojaAtivaId } = useLoja();
   const { online, syncing, pendingCount, syncNow } = useOfflineSync();
   const searchRef = useRef<HTMLInputElement>(null);
   const [busca, setBusca] = useState("");
@@ -123,6 +125,7 @@ const Vendas = () => {
 
   // Carregar produtos + frequentes + clientes
   useEffect(() => {
+    if (!lojaAtivaId) return;
     (async () => {
       setLoadingProdutos(true);
 
@@ -133,12 +136,14 @@ const Vendas = () => {
         supabase
           .from("produtos")
           .select("id,nome,sku,ean,preco_venda,fotos,estoque(quantidade,quantidade_minima,deposito)")
+          .eq("loja_id", lojaAtivaId)
           .eq("ativo", true)
           .order("nome"),
-        supabase.from("clientes").select("id,nome,telefone,cpf_cnpj,email").order("nome"),
+        supabase.from("clientes").select("id,nome,telefone,cpf_cnpj,email").eq("loja_id", lojaAtivaId).order("nome"),
         supabase
           .from("vendas")
           .select("id, venda_itens(produto_id, quantidade)")
+          .eq("loja_id", lojaAtivaId)
           .eq("status", "concluida")
           .gte("created_at", since.toISOString()),
         supabase.rpc("get_loja_pagarme_recipient"),
@@ -182,7 +187,7 @@ const Vendas = () => {
         // ignora
       }
     })();
-  }, []);
+  }, [lojaAtivaId]);
 
   const filtered = useMemo(() => {
     const s = busca.trim().toLowerCase();

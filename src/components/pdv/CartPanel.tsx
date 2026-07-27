@@ -62,7 +62,12 @@ export function CartPanel({
                       <Minus className="w-2.5 h-2.5" />
                     </button>
                     <span className="text-xs font-medium w-4 text-center">{item.qty}</span>
-                    <button onClick={() => onUpdateQty(item.product.id, item.qty + 1)} className="h-5 w-5 rounded-full border flex items-center justify-center text-muted-foreground hover:bg-muted">
+                    <button
+                      onClick={() => onUpdateQty(item.product.id, item.qty + 1)}
+                      disabled={item.qty >= item.product.estoque_qtd}
+                      className="h-5 w-5 rounded-full border flex items-center justify-center text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none"
+                      title={item.qty >= item.product.estoque_qtd ? "Estoque máximo atingido" : undefined}
+                    >
                       <Plus className="w-2.5 h-2.5" />
                     </button>
                   </div>

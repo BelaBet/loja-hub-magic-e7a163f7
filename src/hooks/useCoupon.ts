@@ -1,16 +1,46 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { AppliedCoupon, Coupon } from "@/components/pdv/coupon-types";
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export function useCoupon() {
+const calcDiscount = (coupon: Coupon, subtotal: number) =>
+  coupon.type === "percentage"
+    ? round2(subtotal * (Number(coupon.value) / 100))
+    : round2(Math.min(Number(coupon.value), subtotal));
+
+/**
+ * `subtotal` é o total atual do carrinho (reativo). O desconto do cupom
+ * aplicado é recalculado sempre que o carrinho muda — sem isso, o valor do
+ * desconto ficava "congelado" no momento em que o cupom foi aplicado, então
+ * adicionar/remover itens depois não refletia no desconto real (%) nem
+ * revalidava o pedido mínimo.
+ */
+export function useCoupon(subtotal = 0) {
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    const { coupon } = appliedCoupon;
+    const minOrder = Number(coupon.min_order_value || 0);
+    if (subtotal < minOrder) {
+      setAppliedCoupon(null);
+      setError(
+        `Cupom removido: o carrinho ficou abaixo do pedido mínimo de R$ ${minOrder.toFixed(2).replace(".", ",")}`,
+      );
+      return;
+    }
+    const discount_amount = calcDiscount(coupon, subtotal);
+    if (discount_amount !== appliedCoupon.discount_amount) {
+      setAppliedCoupon({ coupon, discount_amount });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
+
   const validateAndApply = useCallback(
-    async (rawCode: string, subtotal: number): Promise<{ success: boolean; discount_amount?: number; error?: string }> => {
+    async (rawCode: string, currentSubtotal: number): Promise<{ success: boolean; discount_amount?: number; error?: string }> => {
       const code = rawCode.trim().toUpperCase();
       if (!code) {
         const msg = "Informe o código do cupom";
@@ -37,14 +67,11 @@ export function useCoupon() {
           const exp = new Date(coupon.expires_at + "T23:59:59");
           if (exp.getTime() < today.getTime()) return fail("Cupom expirado");
         }
-        if (subtotal < Number(coupon.min_order_value || 0)) {
+        if (currentSubtotal < Number(coupon.min_order_value || 0)) {
           return fail(`Pedido mínimo de R$ ${Number(coupon.min_order_value).toFixed(2).replace(".", ",")}`);
         }
 
-        const discount_amount =
-          coupon.type === "percentage"
-            ? round2(subtotal * (Number(coupon.value) / 100))
-            : round2(Math.min(Number(coupon.value), subtotal));
+        const discount_amount = calcDiscount(coupon, currentSubtotal);
 
         setAppliedCoupon({ coupon, discount_amount });
         setError(null);
@@ -78,5 +105,14 @@ export function useCoupon() {
     return data === true;
   }, []);
 
-  return { appliedCoupon, loading, error, validateAndApply, removeCoupon, useCouponUsage };
+  // Estorna o uso do cupom quando a venda falha DEPOIS do incremento já ter
+  // sido confirmado (ex.: estoque insuficiente bloqueou a venda no passo
+  // seguinte). Evita que o cliente perca um uso do cupom numa compra que
+  // não se concretizou.
+  const releaseCouponUsage = useCallback(async (couponId: string): Promise<void> => {
+    const { error } = await supabase.rpc("decrement_coupon_usage" as any, { p_coupon_id: couponId });
+    if (error) console.error("[coupon] release usage:", error.message);
+  }, []);
+
+  return { appliedCoupon, loading, error, validateAndApply, removeCoupon, useCouponUsage, releaseCouponUsage };
 }

@@ -12,8 +12,9 @@ interface Props {
 
 export function ProductCard({ product, onAdd }: Props) {
   const [qty, setQty] = useState(1);
-  const change = (d: number) => setQty((q) => Math.max(1, q + d));
   const stockOk = product.estoque_qtd > 0;
+  const maxQty = stockOk ? product.estoque_qtd : 1;
+  const change = (d: number) => setQty((q) => Math.min(maxQty, Math.max(1, q + d)));
 
   return (
     <div className="rounded-xl border bg-card p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -38,17 +39,17 @@ export function ProductCard({ product, onAdd }: Props) {
       <div className="flex items-center gap-3">
         <span className="text-sm text-muted-foreground">Qtd:</span>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => change(-1)}>
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => change(-1)} disabled={!stockOk}>
             <Minus className="h-3 w-3" />
           </Button>
           <span className="font-medium text-base w-6 text-center">{qty}</span>
-          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => change(1)}>
+          <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => change(1)} disabled={!stockOk || qty >= maxQty}>
             <Plus className="h-3 w-3" />
           </Button>
         </div>
-        <Button onClick={() => { onAdd(product, qty); setQty(1); }} className="ml-auto h-9">
+        <Button onClick={() => { onAdd(product, qty); setQty(1); }} className="ml-auto h-9" disabled={!stockOk}>
           <ShoppingCart className="w-4 h-4 mr-2" />
-          Adicionar
+          {stockOk ? "Adicionar" : "Sem estoque"}
         </Button>
       </div>
     </div>

@@ -27,7 +27,7 @@ type UIState =
 export default function PDV() {
   const { lojaAtivaId, lojaAtiva } = useLoja();
   const cart = usePDVCart();
-  const coupon = useCoupon();
+  const coupon = useCoupon(cart.total);
   const { online, syncing, pendingCount, syncNow } = useOfflineSync();
   const [ui, setUi] = useState<UIState>({ view: "idle" });
   const [scanLoading, setScanLoading] = useState(false);
@@ -86,10 +86,12 @@ export default function PDV() {
         estoque_qtd: local.estoque_qtd,
       };
     }
+    if (!lojaAtivaId) return null;
     const { data, error } = await supabase
       .from("produtos")
       .select("id, ean, nome, preco_venda, categoria, unidade_medida, fotos, estoque(quantidade)")
       .eq("ean", ean)
+      .eq("loja_id", lojaAtivaId)
       .eq("ativo", true)
       .maybeSingle();
     if (error || !data) {
@@ -156,9 +158,20 @@ export default function PDV() {
   useBarcodeScanner({ onScan: handleScan, enabled: !scanLoading });
 
   const handleAdd = (product: PDVProduct, qty: number) => {
+    const already = cart.items.find((i) => i.product.id === product.id)?.qty ?? 0;
+    const wouldExceed = product.estoque_qtd > 0 && already + qty > product.estoque_qtd;
     cart.addItem(product, qty);
     setUi({ view: "idle" });
-    toast.success(`${qty}× ${product.nome} adicionado`);
+    if (wouldExceed) {
+      const added = Math.max(0, product.estoque_qtd - already);
+      toast.warning(
+        added > 0
+          ? `Só havia estoque para mais ${added}× ${product.nome} — quantidade ajustada.`
+          : `${product.nome} já está no carrinho com todo o estoque disponível.`,
+      );
+    } else {
+      toast.success(`${qty}× ${product.nome} adicionado`);
+    }
     barcodeRef.current?.focus();
   };
 
@@ -216,6 +229,7 @@ export default function PDV() {
       return;
     }
 
+    let couponReserved = false;
     try {
       // Confirma o uso do cupom ANTES de criar a venda (operação atômica no
       // banco). Se o cupom esgotou entre a aplicação no carrinho e o fechamento
@@ -228,6 +242,7 @@ export default function PDV() {
           setSaving(false);
           return;
         }
+        couponReserved = true;
       }
 
       const { data: venda, error: vErr } = await supabase
@@ -275,6 +290,12 @@ export default function PDV() {
       setUi({ view: "idle" });
     } catch (e: any) {
       console.error(e);
+      // A venda não foi concluída — se o cupom já tinha sido confirmado
+      // acima, estorna o uso para não "queimar" o cupom numa compra que
+      // não aconteceu.
+      if (couponReserved && coupon.appliedCoupon) {
+        await coupon.releaseCouponUsage(coupon.appliedCoupon.coupon.id);
+      }
       toast.error(traduzErro(e, "Erro ao registrar venda. Tente novamente."));
     } finally {
       setSaving(false);

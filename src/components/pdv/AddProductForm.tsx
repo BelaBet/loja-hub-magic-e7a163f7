@@ -6,6 +6,7 @@ import { Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLoja } from "@/contexts/LojaContext";
 import { toast } from "sonner";
+import { traduzErro } from "@/lib/errors";
 import type { PDVProduct } from "./types";
 
 interface Props {
@@ -36,6 +37,11 @@ export function AddProductForm({ ean, onSaved, onCancel }: Props) {
     setError("");
 
     const precoNum = parseFloat(preco.replace(",", "."));
+    if (isNaN(precoNum) || precoNum < 0) {
+      setError("Preço inválido.");
+      setLoading(false);
+      return;
+    }
     const estoqueNum = parseFloat(estoqueIni.replace(",", ".")) || 0;
 
     const { data: prod, error: pErr } = await supabase
@@ -53,7 +59,7 @@ export function AddProductForm({ ean, onSaved, onCancel }: Props) {
 
     if (pErr || !prod) {
       setLoading(false);
-      setError(pErr?.message ?? "Erro ao salvar produto.");
+      setError(traduzErro(pErr, "Erro ao salvar produto."));
       return;
     }
 
@@ -63,7 +69,7 @@ export function AddProductForm({ ean, onSaved, onCancel }: Props) {
         produto_id: prod.id,
         quantidade: estoqueNum,
       });
-      if (eErr) toast.warning("Produto criado, mas falhou ao registrar estoque: " + eErr.message);
+      if (eErr) toast.warning("Produto criado, mas falhou ao registrar estoque: " + traduzErro(eErr));
     }
 
     setLoading(false);
