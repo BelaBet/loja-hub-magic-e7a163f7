@@ -21,8 +21,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "PDV", url: "/vendas", icon: ShoppingCart },
-  { title: "PDV Scanner", url: "/pdv", icon: Scan },
+  { title: "Loja Online", url: "/vendas", icon: ShoppingCart },
+  { title: "Loja Online Scanner", url: "/pdv", icon: Scan },
   { title: "Venda avulsa", url: "/venda-avulsa", icon: Zap },
   { title: "Histórico", url: "/vendas/historico", icon: History },
   { title: "Catálogo", url: "/catalogo", icon: Package },

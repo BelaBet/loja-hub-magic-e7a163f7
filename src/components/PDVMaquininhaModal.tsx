@@ -61,13 +61,13 @@ export function PDVMaquininhaModal({
     const id = await createPOSOrder({
       venda_id,
       amount: split.totalAmount,
-      customerName: customerName || "Cliente PDV",
+      customerName: customerName || "Cliente Loja Online",
       customerEmail: customerEmail || "pdv@local",
       paymentType,
       installments: paymentType === "credit" ? installments : 1,
       deviceSerial: m.serial,
       sellerRecipientId,
-      displayName: "Venda PDV",
+      displayName: "Venda Loja Online",
       printReceipt: true,
     });
     if (id) {

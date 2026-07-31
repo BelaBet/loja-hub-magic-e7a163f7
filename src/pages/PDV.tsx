@@ -310,7 +310,7 @@ export default function PDV() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
               <span className="mono text-[10px] uppercase tracking-widest text-muted-foreground">Caixa</span>
-              <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-0.5">PDV</h1>
+              <h1 className="font-display text-fluid-3xl font-bold tracking-tight mt-0.5">Loja Online</h1>
             </div>
             <ConnectionDot online={online} />
           </div>

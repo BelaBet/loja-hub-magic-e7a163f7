@@ -30,7 +30,7 @@ export function PaymentLinkModal({ open, amount, description, onClose }: Props) 
   function handleGenerate() {
     generateLink({
       amount: amountCents,
-      description: description || "Venda PDV",
+      description: description || "Venda Loja Online",
     });
   }
 

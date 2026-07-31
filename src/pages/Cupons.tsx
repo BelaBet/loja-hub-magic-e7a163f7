@@ -123,7 +123,7 @@ export default function CouponsPage() {
             <Ticket className="w-6 h-6" /> Cupons de desconto
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerencie cupons promocionais que seus clientes podem usar no PDV.
+            Gerencie cupons promocionais que seus clientes podem usar na Loja Online.
           </p>
         </div>
 

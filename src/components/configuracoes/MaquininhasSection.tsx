@@ -114,7 +114,7 @@ export function MaquininhasSection({ canEdit }: { canEdit: boolean }) {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Cadastre as maquininhas conectadas da loja para usar no PDV.
+        Cadastre as maquininhas conectadas da loja para usar na Loja Online.
       </p>
 
       {loading ? (
@@ -187,7 +187,7 @@ export function MaquininhasSection({ canEdit }: { canEdit: boolean }) {
             <div className="flex items-center justify-between rounded-md border p-3">
               <div>
                 <Label htmlFor="m-ativo" className="cursor-pointer">Ativa</Label>
-                <p className="text-xs text-muted-foreground">Disponível para cobranças no PDV</p>
+                <p className="text-xs text-muted-foreground">Disponível para cobranças na Loja Online</p>
               </div>
               <Switch id="m-ativo" checked={form.ativo}
                 onCheckedChange={(v) => setForm({ ...form, ativo: v })} />
