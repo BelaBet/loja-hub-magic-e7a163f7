@@ -257,7 +257,7 @@ const Vendedores = () => {
               Vendedores
             </h1>
             <p className="text-muted-foreground text-xs sm:text-sm mt-1">
-              Gerencie quem tem acesso ao PDV da sua loja.
+              Gerencie quem tem acesso à Loja Online da sua loja.
             </p>
           </div>
           {isOwnerOrAdmin && (
@@ -373,7 +373,7 @@ const Vendedores = () => {
           <p className="text-xs text-muted-foreground leading-relaxed">
             <span className="font-semibold text-foreground">Como funciona:</span>{" "}
             Ao adicionar um vendedor, ele receberá um e-mail para definir sua senha e
-            acessar o PDV. Vendedores veem apenas o que é necessário para realizar vendas.
+            acessar a Loja Online. Vendedores veem apenas o que é necessário para realizar vendas.
             Administradores têm acesso completo, exceto configurações de pagamento.
           </p>
         </Card>
@@ -431,7 +431,7 @@ const Vendedores = () => {
               <p className="text-[11px] text-muted-foreground">
                 {inviteRole === "admin"
                   ? "Acesso completo ao dashboard, relatórios e configurações."
-                  : "Acesso ao PDV, catálogo e histórico de vendas próprias."}
+                  : "Acesso à Loja Online, catálogo e histórico de vendas próprias."}
               </p>
             </div>
             <DialogFooter className="gap-2 mt-2">

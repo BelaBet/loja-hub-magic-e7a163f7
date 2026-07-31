@@ -161,7 +161,7 @@ const VendasHistorico = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         <div>
           <Link to="/vendas" className="mono text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1">
-            <ArrowLeft className="h-3 w-3" /> voltar para o PDV
+            <ArrowLeft className="h-3 w-3" /> voltar para a Loja Online
           </Link>
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -209,10 +209,10 @@ const VendasHistorico = () => {
               <ShoppingBag className="h-10 w-10 mx-auto text-muted-foreground/30" />
               <p className="mt-3 font-display text-xl font-bold">Nenhuma venda no período</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Tente um período maior ou comece a vender no PDV.
+                Tente um período maior ou comece a vender na Loja Online.
               </p>
               <Link to="/vendas">
-                <Button className="mt-5">Abrir PDV</Button>
+                <Button className="mt-5">Abrir Loja Online</Button>
               </Link>
             </div>
           ) : (
