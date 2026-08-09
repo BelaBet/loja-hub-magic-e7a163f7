@@ -22,6 +22,30 @@ function unauthorized(msg = "Unauthorized") {
   });
 }
 
+// Registra um alerta operacional visível no dashboard (admin/gerente) quando
+// o webhook É recebido e autenticado, mas falha em algum passo crítico —
+// ex.: Pagar.me confirmou o pagamento mas não conseguimos atualizar a venda,
+// ou a captura automática da maquininha falhou. Nesses casos o dinheiro pode
+// já ter mudado de mãos no lado do Pagar.me sem refletir no sistema, então
+// merece atenção imediata (diferente de "cliente ainda não pagou", que não
+// é uma falha).
+async function alertaFalhaWebhook(
+  supabase: ReturnType<typeof createClient>,
+  params: { loja_id: string; tipo: string; titulo: string; detalhe: string; referencia_id?: string | null },
+) {
+  try {
+    await supabase.from("alertas_operacionais").insert({
+      loja_id: params.loja_id,
+      tipo: params.tipo,
+      titulo: params.titulo,
+      detalhe: params.detalhe,
+      referencia_id: params.referencia_id ?? null,
+    });
+  } catch (e) {
+    console.error("Falha ao registrar alerta operacional:", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -131,7 +155,7 @@ Deno.serve(async (req) => {
       // Busca a venda correspondente
       const { data: venda } = await supabase
         .from("vendas")
-        .select("id, split_rules, device_serial, base_amount, payment_channel")
+        .select("id, loja_id, split_rules, device_serial, base_amount, payment_channel")
         .eq("pagarme_order_id", orderId)
         .maybeSingle();
       if (venda?.id) logEntry.venda_id = venda.id;
@@ -171,6 +195,20 @@ Deno.serve(async (req) => {
             .from("vendas")
             .update({ pagamento_status: "falhou", updated_at: new Date().toISOString() })
             .eq("pagarme_order_id", orderId);
+          if (venda?.id && venda.loja_id) {
+            await alertaFalhaWebhook(supabase, {
+              loja_id: venda.loja_id,
+              tipo: "webhook_captura_falhou",
+              titulo: "Pagamento autorizado na maquininha, mas a captura falhou",
+              detalhe:
+                `O cliente autorizou o pagamento na maquininha (charge ${chargeId}), mas a captura ` +
+                `automática (cobrança efetiva) falhou junto ao Pagar.me. A venda foi marcada como ` +
+                `"falhou" — confira na maquininha se o valor foi mesmo debitado do cliente antes de ` +
+                `tentar cobrar de novo, para não cobrar em duplicidade. ` +
+                `Detalhe técnico: ${captureData?.message ?? JSON.stringify(captureData)}`,
+              referencia_id: venda.id,
+            });
+          }
         } else {
           console.log("Captura automática OK:", captureData.id, captureData.status);
         }
@@ -264,6 +302,26 @@ Deno.serve(async (req) => {
     if (dbError) {
       console.error("Erro ao atualizar venda:", dbError.message);
       logEntry.error = dbError.message;
+      // Pagar.me confirmou o evento (pagamento, cancelamento, etc.) mas não
+      // conseguimos gravar isso na venda — o sistema pode ficar mostrando
+      // um status desatualizado/errado pro caixa. Busca a loja pra alertar.
+      const { data: vendaLookup } = await supabase
+        .from("vendas")
+        .select("id, loja_id")
+        .eq("pagarme_order_id", matchOrderId)
+        .maybeSingle();
+      if (vendaLookup?.loja_id) {
+        await alertaFalhaWebhook(supabase, {
+          loja_id: vendaLookup.loja_id,
+          tipo: "webhook_update_venda_falhou",
+          titulo: `Webhook "${eventType}" recebido, mas não foi possível atualizar a venda`,
+          detalhe:
+            `O Pagar.me confirmou o evento "${eventType}" (pedido ${matchOrderId}), mas a atualização ` +
+            `da venda no sistema falhou. O status da venda pode estar desatualizado — confira e ` +
+            `atualize manualmente se necessário. Detalhe técnico: ${dbError.message}`,
+          referencia_id: vendaLookup.id,
+        });
+      }
     } else {
       console.log(
         `[pagarme-webhook] venda(s) atualizada(s): ${updated?.length ?? 0} → ${novoPagamentoStatus ?? novoStatus}`,
@@ -291,6 +349,37 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("Erro no webhook:", err);
+    // Best-effort: se já sabíamos a que pedido isso se referia antes da
+    // exceção, tenta avisar a loja mesmo assim. Sem order_id resolvido não
+    // há como saber a loja — nesse caso fica só no log da function mesmo.
+    const orderIdForAlert = logEntry.pagarme_order_id as string | undefined;
+    if (orderIdForAlert) {
+      try {
+        const supabaseAlert = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        const { data: vendaLookup } = await supabaseAlert
+          .from("vendas")
+          .select("id, loja_id")
+          .eq("pagarme_order_id", orderIdForAlert)
+          .maybeSingle();
+        if (vendaLookup?.loja_id) {
+          await alertaFalhaWebhook(supabaseAlert, {
+            loja_id: vendaLookup.loja_id,
+            tipo: "webhook_erro_inesperado",
+            titulo: "Erro inesperado ao processar um webhook do Pagar.me",
+            detalhe:
+              `Um webhook do pedido ${orderIdForAlert} causou um erro inesperado no processamento. ` +
+              `Verifique o status dessa venda manualmente. Detalhe técnico: ` +
+              `${err instanceof Error ? err.message : "erro desconhecido"}`,
+            referencia_id: vendaLookup.id,
+          });
+        }
+      } catch (alertErr) {
+        console.error("Falha ao tentar alertar sobre erro inesperado:", alertErr);
+      }
+    }
     return finish(
       500,
       JSON.stringify({ error: err instanceof Error ? err.message : "Erro desconhecido" }),

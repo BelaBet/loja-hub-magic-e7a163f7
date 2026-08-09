@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LojaSwitcher } from "@/components/LojaSwitcher";
+import { AlertsBell } from "@/components/AlertsBell";
 
 export const AppLayout = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -67,6 +68,7 @@ export const AppLayout = ({ children }: { children: ReactNode }) => {
             <div className="min-w-0 max-w-[40vw] sm:max-w-none">
               <LojaSwitcher />
             </div>
+            <AlertsBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full p-0 shrink-0" aria-label="Menu do usuário">
