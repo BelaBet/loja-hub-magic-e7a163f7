@@ -12,6 +12,15 @@ export const PAGARME_SECRET_CHAVE = "PAGARME_SECRET_KEY";
 let cached: { value: string; at: number } | null = null;
 const TTL_MS = 30_000;
 
+function envFallback(): string | null {
+  // Alguns projetos tiveram a chave do provedor salva com outro nome de secret.
+  return (
+    Deno.env.get("PAGARME_SECRET_KEY") ??
+    Deno.env.get("STRIPE_TEST_API_KEY") ??
+    null
+  );
+}
+
 export async function getPagarmeSecretKey(): Promise<string | null> {
   if (cached && Date.now() - cached.at < TTL_MS) return cached.value;
 
@@ -25,7 +34,7 @@ export async function getPagarmeSecretKey(): Promise<string | null> {
     .eq("chave", PAGARME_SECRET_CHAVE)
     .maybeSingle();
   if (error || !data?.valor) {
-    return Deno.env.get("PAGARME_SECRET_KEY") ?? null;
+    return envFallback();
   }
 
   cached = { value: data.valor, at: Date.now() };
