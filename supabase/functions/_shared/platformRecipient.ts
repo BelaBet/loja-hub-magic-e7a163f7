@@ -1,7 +1,7 @@
 // Validação central do recipient da plataforma.
 // Todo fluxo de pagamento DEVE resolver o recipient por aqui.
 
-export const EXPECTED_PLATFORM_RECIPIENT_ID = "re_cmsov7qej003a0l9thvhq2gfi";
+export const EXPECTED_PLATFORM_RECIPIENT_ID = "re_cmsov4l64001u0l9t1dkhy8gw";
 
 const RECIPIENT_FORMAT = /^re_[a-z0-9]{20,}$/i;
 
