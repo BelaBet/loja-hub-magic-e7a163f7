@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
   }
 
   const secretKey = await getPagarmeSecretKey();
-  if (!secretKey) return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
+  if (!secretKey) return json({ error: "Chave do provedor de pagamentos não configurada. Um super administrador pode salvá-la em Configurações." }, 500);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
