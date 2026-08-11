@@ -71,7 +71,13 @@ Deno.serve(async (req) => {
   try {
     const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
     if (!secretKey) return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
-    const platformRecipientId = Deno.env.get("PAGARME_PLATFORM_RECIPIENT_ID");
+    let platformRecipientId: string;
+    try {
+      platformRecipientId = getPlatformRecipientId();
+    } catch (e) {
+      if (e instanceof PlatformRecipientError) return json({ error: e.message }, 500);
+      throw e;
+    }
 
     // ── Auth ──────────────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
@@ -146,6 +152,14 @@ Deno.serve(async (req) => {
       .eq("id", venda.loja_id)
       .maybeSingle();
     const seller_recipient_id: string | null = lojaRow?.pagarme_recipient_id ?? null;
+    if (seller_recipient_id) {
+      try {
+        assertSellerRecipientId(seller_recipient_id);
+      } catch (e) {
+        if (e instanceof PlatformRecipientError) return json({ error: e.message }, 400);
+        throw e;
+      }
+    }
 
     // ── Split rules (se houver recipient) ────────────────────────────────────
     // PIX e débito sempre 1×, sem acréscimo de parcela.
