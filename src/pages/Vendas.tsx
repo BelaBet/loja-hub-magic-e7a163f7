@@ -151,7 +151,12 @@ const Vendas = () => {
       const since = new Date();
       since.setDate(since.getDate() - 30);
 
-      const [{ data: prods }, { data: cli }, { data: vendasRecent }, { data: recipient }] = await Promise.all([
+      const [
+        { data: prods, error: prodsErr },
+        { data: cli },
+        { data: vendasRecent },
+        { data: recipient },
+      ] = await Promise.all([
         supabase
           .from("produtos")
           .select("id,nome,sku,ean,preco_venda,fotos,estoque(quantidade,quantidade_minima,deposito)")
@@ -170,7 +175,24 @@ const Vendas = () => {
 
       setSellerRecipientId((recipient as string | null) ?? null);
 
-      const lista = (prods as Produto[]) ?? [];
+      let lista = (prods as Produto[]) ?? [];
+      if (prodsErr) {
+        console.error("[vendas] erro ao carregar produtos:", prodsErr);
+        // Fallback: tenta sem o vínculo de estoque (ex.: bloqueio de permissão
+        // na tabela de estoque não deve esconder o catálogo inteiro).
+        const { data: simples, error: simplesErr } = await supabase
+          .from("produtos")
+          .select("id,nome,sku,ean,preco_venda,fotos")
+          .eq("loja_id", lojaAtivaId)
+          .eq("ativo", true)
+          .order("nome");
+        if (simplesErr) {
+          console.error("[vendas] fallback produtos:", simplesErr);
+          toast.error("Não foi possível carregar o catálogo: " + simplesErr.message);
+        } else {
+          lista = ((simples ?? []) as any[]).map((p) => ({ ...p, estoque: [] })) as Produto[];
+        }
+      }
       setProdutos(lista);
       setClientes((cli as Cliente[]) ?? []);
 
