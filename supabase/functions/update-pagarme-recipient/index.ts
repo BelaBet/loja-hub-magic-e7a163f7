@@ -75,7 +75,9 @@ Deno.serve(async (req) => {
     // Mesma invariante aplicada em create-order/create-pos-order: o recipient
     // de uma loja nunca pode ser igual ao recipient da própria plataforma
     // (evitaria o split funcionar corretamente e confundiria os repasses).
-    if (recipientId) {
+    // Em dry_run (apenas "testar conexão") não bloqueamos: queremos ver o
+    // status real no provedor, mesmo que o valor coincida com o da plataforma.
+    if (recipientId && !dryRun) {
       try {
         assertSellerRecipientId(recipientId);
       } catch (e) {
