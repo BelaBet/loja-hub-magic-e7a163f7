@@ -97,6 +97,15 @@ Deno.serve(async (req) => {
       });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          return json(
+            {
+              error:
+                "A chave secreta do provedor de pagamentos foi recusada (401). O recipient pode estar correto — o problema é a chave. Um super administrador precisa salvar uma chave válida (sk_...) em Configurações → Credenciais da plataforma, do mesmo ambiente (teste/produção) do recipient.",
+            },
+            502,
+          );
+        }
         return json(
           { error: `Recipient não encontrado no Pagar.me: ${data?.message ?? res.statusText}` },
           422,
