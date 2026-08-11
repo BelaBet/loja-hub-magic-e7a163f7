@@ -162,6 +162,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
       seller_recipient_id = loja?.pagarme_recipient_id ?? null;
     }
+    // Loja que usa o próprio recipient da plataforma: cobrança em recipient
+    // único, sem divisão de pagamentos.
+    if (seller_recipient_id && isPlatformRecipient(seller_recipient_id)) {
+      seller_recipient_id = null;
+    }
     if (seller_recipient_id) {
       try {
         assertSellerRecipientId(seller_recipient_id);
