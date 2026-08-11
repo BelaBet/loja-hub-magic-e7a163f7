@@ -2,6 +2,7 @@
 // Secrets: PAGARME_SECRET_KEY, PAGARME_PLATFORM_RECIPIENT_ID.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
   assertSellerRecipientId,
   getPlatformRecipientId,
   isPlatformRecipient,
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
       return json({ error: "Unauthorized" }, 401);
     }
 
-    const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
+    const secretKey = await getPagarmeSecretKey();
     if (!secretKey) {
       return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
     }

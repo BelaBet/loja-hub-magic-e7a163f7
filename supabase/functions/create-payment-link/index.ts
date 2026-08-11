@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
-const PAGARME_SECRET_KEY = Deno.env.get("PAGARME_SECRET_KEY")!;
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

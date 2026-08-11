@@ -2,6 +2,7 @@
 // Body: { venda_id: string }
 // Auth: JWT do usuário (precisa pertencer à loja da venda — checagem via RLS).
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
       return json({ error: "Venda sem pedido" }, 400);
     }
 
-    const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
+    const secretKey = await getPagarmeSecretKey();
     if (!secretKey) return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
 
     const res = await fetch(`${PAGARME_BASE_URL}/orders/${venda.pagarme_order_id}`, {

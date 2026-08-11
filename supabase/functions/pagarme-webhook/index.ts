@@ -7,6 +7,7 @@
 //          charge.payment_failed, order.canceled, charge.refunded.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
-    const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
+    const secretKey = await getPagarmeSecretKey();
 
     // ─── charge.authorized — cliente pagou na maquininha; captura automática ─
     if (eventType === "charge.authorized" && secretKey) {
