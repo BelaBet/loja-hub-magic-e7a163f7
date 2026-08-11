@@ -46,11 +46,24 @@ export function AppSidebar() {
 
   useEffect(() => {
     let cancelled = false;
+    let anterior: boolean | null = null;
 
     const refresh = async () => {
       const { data } = await supabase.rpc("is_super_admin");
       if (cancelled) return;
-      setIsSuperAdmin(data === true);
+      const agora = data === true;
+      if (anterior === false && agora) {
+        const { data: sess } = await supabase.auth.getUser();
+        const detalhe = "O menu foi atualizado e o painel Super Admin já está disponível.";
+        toast.success("Você agora é Super Admin", { description: detalhe });
+        addLocalNotification(
+          "Você agora é Super Admin",
+          detalhe,
+          `super-admin-${sess?.user?.id ?? "user"}`,
+        );
+      }
+      anterior = agora;
+      setIsSuperAdmin(agora);
 
       const { data: insts } = await (supabase as any)
         .from("institutions")
