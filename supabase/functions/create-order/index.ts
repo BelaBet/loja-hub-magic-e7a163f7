@@ -1,6 +1,6 @@
 // Edge function pública: cria pedido (PIX, crédito ou débito) com split.
 // Secrets: PAGARME_SECRET_KEY, PAGARME_PLATFORM_RECIPIENT_ID.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   assertSellerRecipientId,
   getPlatformRecipientId,
