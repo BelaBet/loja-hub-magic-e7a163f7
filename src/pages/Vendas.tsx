@@ -125,11 +125,28 @@ const Vendas = () => {
     searchRef.current?.focus();
   }, []);
 
+  // Recarrega o catálogo quando a aba volta ao foco (produto recém-cadastrado aparece na hora)
+  const [reloadKey, setReloadKey] = useState(0);
+  useEffect(() => {
+    const bump = () => {
+      if (document.visibilityState === "visible") setReloadKey((k) => k + 1);
+    };
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", bump);
+    return () => {
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", bump);
+    };
+  }, []);
+
   // Carregar produtos + frequentes + clientes
   useEffect(() => {
     if (!lojaAtivaId) return;
     (async () => {
-      setLoadingProdutos(true);
+      setProdutos((prev) => {
+        if (prev.length === 0) setLoadingProdutos(true);
+        return prev;
+      });
 
       const since = new Date();
       since.setDate(since.getDate() - 30);
@@ -189,7 +206,7 @@ const Vendas = () => {
         // ignora
       }
     })();
-  }, [lojaAtivaId]);
+  }, [lojaAtivaId, reloadKey]);
 
   const filtered = useMemo(() => {
     const s = busca.trim().toLowerCase();
