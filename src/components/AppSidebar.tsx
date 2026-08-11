@@ -1,6 +1,8 @@
 import { LayoutDashboard, Package, LogOut, ShoppingCart, History, Boxes, FileText, Users, Shield, Settings, Scan, Ticket, User, Receipt, Network, Zap, Palette, UserCog } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { addLocalNotification } from "@/lib/localNotifications";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import BrandLogo from "@/components/BrandLogo";
