@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
 import { Card } from "@/components/ui/card";
@@ -126,17 +127,13 @@ const lojaSchema = z.object({
   telefone: z.string().trim().max(20, "Máx. 20 caracteres"),
   cnpj: z.string().trim().max(18, "Máx. 18 caracteres"),
   endereco: z.string().trim().max(255, "Máx. 255 caracteres"),
-  pagarme_recipient_id: z
-    .string()
-    .trim()
-    .max(40, "Máx. 40 caracteres")
-    .regex(/^(re_[a-zA-Z0-9]+)?$/, "Formato: re_xxxxxxxxxxxxxxxx (ou deixe vazio)"),
 });
 
 export default function Configuracoes() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
+  const [isSuper, setIsSuper] = useState(false);
   const [lojaId, setLojaId] = useState<string | null>(null);
   const [form, setForm] = useState<LojaForm>({
     nome: "",
@@ -174,6 +171,8 @@ export default function Configuracoes() {
           // has_loja_role('admin') — só admin pode editar
           const { data: isAdmin } = await supabase.rpc("has_loja_role", { _role: "admin" });
           setCanEdit(isAdmin === true);
+          const { data: superData } = await supabase.rpc("is_super_admin");
+          setIsSuper(superData === true);
         } else {
           toast.error("Loja não encontrada. Apenas administradores acessam esta página.");
         }
@@ -242,7 +241,6 @@ export default function Configuracoes() {
           telefone: parsed.data.telefone || null,
           cnpj: parsed.data.cnpj || null,
           endereco: parsed.data.endereco || null,
-          pagarme_recipient_id: parsed.data.pagarme_recipient_id || null,
           recibo_config: recibo,
         } as any)
         .eq("id", lojaId);
@@ -363,32 +361,31 @@ export default function Configuracoes() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                Informe o <strong>Recipient ID</strong> da sua loja para que os pagamentos sejam divididos
-                automaticamente entre a plataforma e a sua conta. Sem ele, o valor vai integralmente para a conta principal.
+                O <strong>Recipient ID</strong> define para onde vai o repasse do split de cada venda. Por segurança,
+                só o suporte (super admin) pode alterá-lo.
               </p>
 
               <div>
-                <Label htmlFor="recipient">Recipient ID (re_xxxxxxxxxxxxxxxx)</Label>
-                <Input
-                  id="recipient"
-                  value={form.pagarme_recipient_id}
-                  onChange={(e) => update("pagarme_recipient_id", e.target.value.trim())}
-                  disabled={!canEdit}
-                  maxLength={40}
-                  placeholder="re_xxxxxxxxxxxxxxxx"
-                  className={`mono ${errors.pagarme_recipient_id ? "border-destructive" : ""}`}
-                />
-                {errors.pagarme_recipient_id && (
-                  <p className="text-xs text-destructive mt-1">{errors.pagarme_recipient_id}</p>
+                <Label>Recipient ID</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={form.pagarme_recipient_id || "Nenhum recipient vinculado"}
+                    disabled
+                    className={`mono ${!form.pagarme_recipient_id ? "text-muted-foreground" : ""}`}
+                  />
+                </div>
+                {isSuper ? (
+                  <Link
+                    to={`/admin/lojas/${lojaId}/pagamentos`}
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+                  >
+                    Editar em Configurações de pagamentos <ExternalLink className="h-3 w-3" />
+                  </Link>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Para alterar, entre em contato com o suporte.
+                  </p>
                 )}
-                <a
-                  href="https://dashboard.pagar.me/#/recebedores"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
-                >
-                  Onde encontro meu Recipient ID? <ExternalLink className="h-3 w-3" />
-                </a>
               </div>
             </Card>
 

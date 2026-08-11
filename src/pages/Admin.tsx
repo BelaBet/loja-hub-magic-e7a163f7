@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppLayout } from "@/components/AppLayout";
-import { Shield, Search, ExternalLink, Building2, Webhook, FlaskConical } from "lucide-react";
+import { Shield, Search, ExternalLink, Building2, Webhook, FlaskConical, CreditCard } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -161,6 +161,11 @@ const Admin = () => {
                     onClick={() => window.open(`/c/${l.id}`, "_blank")}
                   >
                     <ExternalLink className="h-3.5 w-3.5 mr-1" /> Catálogo
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1" asChild>
+                    <Link to={`/admin/lojas/${l.id}/pagamentos`}>
+                      <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagamentos
+                    </Link>
                   </Button>
                 </div>
               </Card>
