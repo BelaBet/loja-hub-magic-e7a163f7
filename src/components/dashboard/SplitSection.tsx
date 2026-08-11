@@ -182,7 +182,7 @@ export function SplitSection({ periodoRange: externalRange }: SplitSectionProps)
         {isSuper && (
           <>
             <KpiTile icon={TrendingUp} label="Base (sem acréscimo)" value={brl(tot.base)} tone="muted" />
-            <KpiTile icon={Building2} label="Plataforma" value={brl(tot.plataforma)} tone="warning" />
+            <KpiTile icon={Building2} label="Taxas" value={brl(tot.plataforma)} tone="warning" />
             <KpiTile icon={Wallet} label="Lojista" value={brl(tot.lojista)} tone="success" />
           </>
         )}
@@ -210,7 +210,7 @@ export function SplitSection({ periodoRange: externalRange }: SplitSectionProps)
                   <th className="px-3 py-2 font-medium text-right">Total</th>
                   {isSuper && (
                     <>
-                      <th className="px-3 py-2 font-medium text-right hidden sm:table-cell">Plataforma</th>
+                      <th className="px-3 py-2 font-medium text-right hidden sm:table-cell">Taxas</th>
                       <th className="px-3 py-2 font-medium text-right">Lojista</th>
                     </>
                   )}
