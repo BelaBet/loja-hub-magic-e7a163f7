@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   assertSellerRecipientId,
   getPlatformRecipientId,
+  isPlatformRecipient,
   PlatformRecipientError,
 } from "../_shared/platformRecipient.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
