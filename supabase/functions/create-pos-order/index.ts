@@ -1,5 +1,10 @@
 // Edge function: cria pedido na maquininha com split,
 // e atualiza a venda (já criada pelo PDV como pendente) com os dados de cobrança.
+import {
+  assertSellerRecipientId,
+  getPlatformRecipientId,
+  PlatformRecipientError,
+} from "../_shared/platformRecipient.ts";
 //
 // Body esperado:
 // {
