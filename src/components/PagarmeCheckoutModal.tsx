@@ -401,7 +401,7 @@ export function PagarmeCheckoutModal({
                 {sellerRecipientId && (
                   <>
                     <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                      <span>Plataforma recebe</span>
+                      <span>Taxas</span>
                       <span className="num">
                         {brl(split.platformAmount / 100)} ({(split.platformRate * 100).toFixed(2)}%)
                       </span>
