@@ -2,12 +2,12 @@
 // Secrets: PAGARME_SECRET_KEY, PAGARME_PLATFORM_RECIPIENT_ID.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
-import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
   assertSellerRecipientId,
   getPlatformRecipientId,
   isPlatformRecipient,
   PlatformRecipientError,
 } from "../_shared/platformRecipient.ts";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 
 const corsHeaders = {
