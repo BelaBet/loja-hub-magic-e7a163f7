@@ -38,6 +38,11 @@ export function getPlatformRecipientId(): string {
   return value;
 }
 
+/** true quando o recipient informado é o próprio recipient da plataforma. */
+export function isPlatformRecipient(recipientId: string): boolean {
+  return recipientId.trim() === EXPECTED_PLATFORM_RECIPIENT_ID;
+}
+
 /** Valida o recipient do vendedor (não pode ser igual ao da plataforma). */
 export function assertSellerRecipientId(sellerRecipientId: string): void {
   if (!RECIPIENT_FORMAT.test(sellerRecipientId)) {

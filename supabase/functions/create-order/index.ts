@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   assertSellerRecipientId,
   getPlatformRecipientId,
+  isPlatformRecipient,
   PlatformRecipientError,
 } from "../_shared/platformRecipient.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
@@ -161,6 +162,11 @@ Deno.serve(async (req) => {
         .eq("id", lojaId)
         .maybeSingle();
       seller_recipient_id = loja?.pagarme_recipient_id ?? null;
+    }
+    // Loja que usa o próprio recipient da plataforma: cobrança em recipient
+    // único, sem divisão de pagamentos.
+    if (seller_recipient_id && isPlatformRecipient(seller_recipient_id)) {
+      seller_recipient_id = null;
     }
     if (seller_recipient_id) {
       try {

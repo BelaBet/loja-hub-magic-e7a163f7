@@ -3,6 +3,7 @@
 import {
   assertSellerRecipientId,
   getPlatformRecipientId,
+  isPlatformRecipient,
   PlatformRecipientError,
 } from "../_shared/platformRecipient.ts";
 //
@@ -151,7 +152,12 @@ Deno.serve(async (req) => {
       .select("pagarme_recipient_id")
       .eq("id", venda.loja_id)
       .maybeSingle();
-    const seller_recipient_id: string | null = lojaRow?.pagarme_recipient_id ?? null;
+    const rawSellerRecipientId: string | null = lojaRow?.pagarme_recipient_id ?? null;
+    // Loja que usa o próprio recipient da plataforma: recipient único, sem divisão.
+    const seller_recipient_id: string | null =
+      rawSellerRecipientId && isPlatformRecipient(rawSellerRecipientId)
+        ? null
+        : rawSellerRecipientId;
     if (seller_recipient_id) {
       try {
         assertSellerRecipientId(seller_recipient_id);
