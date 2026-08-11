@@ -607,6 +607,33 @@ export type Database = {
           },
         ]
       }
+      plataforma_credenciais: {
+        Row: {
+          chave: string
+          created_at: string
+          last4: string | null
+          updated_at: string
+          updated_by: string | null
+          valor: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          last4?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          last4?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string
+        }
+        Relationships: []
+      }
       produtos: {
         Row: {
           aliquota_icms: number | null
