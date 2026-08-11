@@ -24,7 +24,6 @@ import {
   calculateSplit,
   getInstallmentTable,
   INSTALLMENT_RATE,
-  STONE_MDR_RATE,
   BASE_FEE_RATE,
 } from "@/lib/pagarme-split";
 
@@ -119,7 +118,6 @@ export function PagarmeCheckoutModal({
     [amountCents, method, installments],
   );
   const installmentTable = useMemo(() => getInstallmentTable(amountCents, 12), [amountCents]);
-  const stoneFee = Math.round(split.sellerAmount * STONE_MDR_RATE);
 
   const gerarPix = async () => {
     setLoading(true);
@@ -398,24 +396,6 @@ export function PagarmeCheckoutModal({
                   <span>Total cobrado</span>
                   <span className="num">{brl(split.totalAmount / 100)}</span>
                 </div>
-                {sellerRecipientId && (
-                  <>
-                    <div className="flex justify-between text-xs text-muted-foreground pt-1">
-                      <span>Taxas</span>
-                      <span className="num">
-                        {brl(split.platformAmount / 100)} ({(split.platformRate * 100).toFixed(2)}%)
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Lojista recebe (antes do MDR)</span>
-                      <span className="num">{brl(split.sellerAmount / 100)}</span>
-                    </div>
-                    <div className="flex justify-between text-[11px] text-muted-foreground/80">
-                      <span>Stone deduz (2,04%)</span>
-                      <span className="num">− {brl(stoneFee / 100)}</span>
-                    </div>
-                  </>
-                )}
               </div>
 
               {showTable && (
