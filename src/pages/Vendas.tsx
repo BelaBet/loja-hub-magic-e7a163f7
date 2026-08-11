@@ -143,7 +143,10 @@ const Vendas = () => {
   useEffect(() => {
     if (!lojaAtivaId) return;
     (async () => {
-      setLoadingProdutos(true);
+      setProdutos((prev) => {
+        if (prev.length === 0) setLoadingProdutos(true);
+        return prev;
+      });
 
       const since = new Date();
       since.setDate(since.getDate() - 30);
