@@ -1203,6 +1203,7 @@ export type Database = {
       }
     }
     Functions: {
+      can_write_loja_file: { Args: { _folder: string }; Returns: boolean }
       ensure_loja_for_current_user: { Args: never; Returns: string }
       get_loja_fiscal_config_safe: {
         Args: never
