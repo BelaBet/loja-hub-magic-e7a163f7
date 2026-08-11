@@ -57,10 +57,35 @@ Deno.serve(async (req) => {
         .eq("chave", CHAVE)
         .maybeSingle();
 
+      const { data: rowVal } = await admin
+        .from("plataforma_credenciais")
+        .select("valor")
+        .eq("chave", CHAVE)
+        .maybeSingle();
+      const efetiva = rowVal?.valor ?? envKey ?? null;
+
+      let valida: boolean | null = null;
+      let diagnostico: string | null = null;
+      if (efetiva) {
+        const check = await fetch(`${PAGARME_BASE_URL}/recipients?size=1`, {
+          headers: { Authorization: `Basic ${btoa(efetiva + ":")}` },
+        });
+        await check.text();
+        valida = check.ok;
+        if (!valida) {
+          diagnostico = check.status === 401 || check.status === 403
+            ? "Chave recusada pelo provedor (401/403) — a chave salva não é uma secret key válida."
+            : `Provedor respondeu status ${check.status}.`;
+        }
+      }
+
       return json({
-        configurada: !!(envKey || row),
-        origem: envKey ? "ambiente" : row ? "banco" : null,
-        last4: envKey ? envKey.slice(-4) : row?.last4 ?? null,
+        configurada: !!efetiva,
+        origem: rowVal?.valor ? "banco" : envKey ? "ambiente" : null,
+        last4: efetiva ? efetiva.slice(-4) : null,
+        prefixo: efetiva ? efetiva.slice(0, 3) : null,
+        valida,
+        diagnostico,
         atualizada_em: row?.updated_at ?? null,
       });
     }
