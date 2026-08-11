@@ -24,7 +24,6 @@ import {
   calculateSplit,
   getInstallmentTable,
   INSTALLMENT_RATE,
-  STONE_MDR_RATE,
   BASE_FEE_RATE,
 } from "@/lib/pagarme-split";
 
