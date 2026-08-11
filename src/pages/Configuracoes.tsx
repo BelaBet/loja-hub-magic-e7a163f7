@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Save, Settings, Store, CreditCard, ExternalLink, Receipt, Upload, X } from "lucide-react";
 import { MaquininhasSection } from "@/components/configuracoes/MaquininhasSection";
+import { PlatformSecretSection } from "@/components/configuracoes/PlatformSecretSection";
 import { brl } from "@/lib/format";
 
 function ReciboPreview({
@@ -391,6 +392,9 @@ export default function Configuracoes() {
 
             {/* Maquininhas */}
             <MaquininhasSection canEdit={canEdit} />
+
+            {/* Chave do provedor de pagamentos — apenas super admin */}
+            {isSuper && <PlatformSecretSection />}
 
             {/* Personalização do recibo */}
             <Card className="p-6 space-y-5">

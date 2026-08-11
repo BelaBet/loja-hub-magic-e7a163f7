@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
-const PAGARME_SECRET_KEY = Deno.env.get("PAGARME_SECRET_KEY")!;
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,11 +70,19 @@ serve(async (req) => {
       },
     };
 
+    const secretKey = await getPagarmeSecretKey();
+    if (!secretKey) {
+      return new Response(
+        JSON.stringify({ error: "Chave do provedor de pagamentos não configurada" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const response = await fetch("https://api.pagar.me/core/v5/paymentlinks", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Basic ${btoa(PAGARME_SECRET_KEY + ":")}`,
+        Authorization: `Basic ${btoa(secretKey + ":")}`,
       },
       body: JSON.stringify(payload),
     });

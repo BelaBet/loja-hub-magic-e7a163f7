@@ -7,6 +7,7 @@ import {
   isPlatformRecipient,
   PlatformRecipientError,
 } from "../_shared/platformRecipient.ts";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 
 const corsHeaders = {
@@ -111,9 +112,9 @@ Deno.serve(async (req) => {
       return json({ error: "Unauthorized" }, 401);
     }
 
-    const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
+    const secretKey = await getPagarmeSecretKey();
     if (!secretKey) {
-      return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
+      return json({ error: "Chave do provedor de pagamentos não configurada. Um super administrador pode salvá-la em Configurações." }, 500);
     }
 
     let platformRecipientId: string;

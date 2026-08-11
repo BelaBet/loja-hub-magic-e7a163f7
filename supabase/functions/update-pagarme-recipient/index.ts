@@ -18,6 +18,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { assertSellerRecipientId, PlatformRecipientError } from "../_shared/platformRecipient.ts";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 const RECIPIENT_ID_RE = /^re_[a-zA-Z0-9]+$/;
@@ -83,8 +84,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
-    if (!secretKey) return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
+    const secretKey = await getPagarmeSecretKey();
+    if (!secretKey) return json({ error: "Chave do provedor de pagamentos não configurada. Um super administrador pode salvá-la em Configurações." }, 500);
 
     // ─── 3. Valida o recipient direto no Pagar.me antes de salvar ───────────
     let recipientInfo: { id: string; name?: string; status?: string; email?: string } | null = null;

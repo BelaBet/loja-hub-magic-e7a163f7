@@ -19,6 +19,7 @@
 // pra essa function a cada 10-15 min, ou via pg_cron + pg_net.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 const PENDENTE_MIN_MINUTOS = 15;
@@ -46,8 +47,8 @@ Deno.serve(async (req) => {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
-  if (!secretKey) return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
+  const secretKey = await getPagarmeSecretKey();
+  if (!secretKey) return json({ error: "Chave do provedor de pagamentos não configurada. Um super administrador pode salvá-la em Configurações." }, 500);
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
