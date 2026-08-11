@@ -48,7 +48,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const envKey = Deno.env.get("PAGARME_SECRET_KEY");
+    const envKey =
+      Deno.env.get("PAGARME_SECRET_KEY") ?? Deno.env.get("STRIPE_TEST_API_KEY");
 
     if (req.method === "GET") {
       const { data: row } = await admin
