@@ -45,15 +45,58 @@ export function AppSidebar() {
   const [hasNetwork, setHasNetwork] = useState(false);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+
+    const refresh = async () => {
       const { data } = await supabase.rpc("is_super_admin");
-      if (data === true) setIsSuperAdmin(true);
+      if (cancelled) return;
+      setIsSuperAdmin(data === true);
+
       const { data: insts } = await (supabase as any)
         .from("institutions")
         .select("id")
         .limit(1);
-      if (insts && insts.length > 0) setHasNetwork(true);
-    })();
+      if (cancelled) return;
+      setHasNetwork(!!insts && insts.length > 0);
+    };
+
+    refresh();
+
+    // Reavalia quando a sessão muda (login, refresh de token, troca de usuário)
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      // evita chamadas dentro do callback do Supabase
+      setTimeout(refresh, 0);
+    });
+
+    // Reavalia ao voltar para a aba / focar a janela
+    const onFocus = () => refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
+    // Reage em tempo real a mudanças de papel do usuário
+    const channel = supabase
+      .channel("sidebar-user-roles")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles" },
+        () => refresh(),
+      )
+      .subscribe();
+
+    // Rede de segurança: revalida periodicamente
+    const interval = window.setInterval(refresh, 30000);
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+      supabase.removeChannel(channel);
+      window.clearInterval(interval);
+    };
   }, []);
 
   const handleLogout = async () => {
