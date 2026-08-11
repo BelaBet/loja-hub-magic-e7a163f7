@@ -1,6 +1,11 @@
 // Edge function pública: cria pedido (PIX, crédito ou débito) com split.
 // Secrets: PAGARME_SECRET_KEY, PAGARME_PLATFORM_RECIPIENT_ID.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  assertSellerRecipientId,
+  getPlatformRecipientId,
+  PlatformRecipientError,
+} from "../_shared/platformRecipient.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 
 const corsHeaders = {
@@ -110,7 +115,13 @@ Deno.serve(async (req) => {
       return json({ error: "PAGARME_SECRET_KEY não configurada" }, 500);
     }
 
-    const platformRecipientId = Deno.env.get("PAGARME_PLATFORM_RECIPIENT_ID");
+    let platformRecipientId: string;
+    try {
+      platformRecipientId = getPlatformRecipientId();
+    } catch (e) {
+      if (e instanceof PlatformRecipientError) return json({ error: e.message }, 500);
+      throw e;
+    }
 
     const body = (await req.json()) as Body;
     const {
@@ -150,6 +161,14 @@ Deno.serve(async (req) => {
         .eq("id", lojaId)
         .maybeSingle();
       seller_recipient_id = loja?.pagarme_recipient_id ?? null;
+    }
+    if (seller_recipient_id) {
+      try {
+        assertSellerRecipientId(seller_recipient_id);
+      } catch (e) {
+        if (e instanceof PlatformRecipientError) return json({ error: e.message }, 400);
+        throw e;
+      }
     }
 
     if (
