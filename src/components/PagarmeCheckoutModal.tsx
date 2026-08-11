@@ -119,7 +119,6 @@ export function PagarmeCheckoutModal({
     [amountCents, method, installments],
   );
   const installmentTable = useMemo(() => getInstallmentTable(amountCents, 12), [amountCents]);
-  const stoneFee = Math.round(split.sellerAmount * STONE_MDR_RATE);
 
   const gerarPix = async () => {
     setLoading(true);
