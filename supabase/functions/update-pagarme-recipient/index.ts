@@ -17,6 +17,7 @@
 //   "testar conexão" do recipient já salvo, sem editar).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { assertSellerRecipientId, PlatformRecipientError } from "../_shared/platformRecipient.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 const RECIPIENT_ID_RE = /^re_[a-zA-Z0-9]+$/;
@@ -68,6 +69,18 @@ Deno.serve(async (req) => {
 
     if (recipientId && !RECIPIENT_ID_RE.test(recipientId)) {
       return json({ error: "Formato inválido. Esperado: re_xxxxxxxxxxxxxxxx" }, 400);
+    }
+
+    // Mesma invariante aplicada em create-order/create-pos-order: o recipient
+    // de uma loja nunca pode ser igual ao recipient da própria plataforma
+    // (evitaria o split funcionar corretamente e confundiria os repasses).
+    if (recipientId) {
+      try {
+        assertSellerRecipientId(recipientId);
+      } catch (e) {
+        if (e instanceof PlatformRecipientError) return json({ error: e.message }, 422);
+        throw e;
+      }
     }
 
     const secretKey = Deno.env.get("PAGARME_SECRET_KEY");
