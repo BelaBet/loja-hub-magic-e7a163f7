@@ -14,11 +14,10 @@ on:
       - 'fix/**'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   quality:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,44 +31,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-
-      - name: Patch checkout address integration
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('src/components/PagarmeCheckoutModal.tsx')
-          s = p.read_text()
-
-          s = s.replace(
-              'export type PagarmeMethod = "pix" | "credit_card";\nexport type PagarmeCustomer = { name?: string; email?: string; document?: string; area_code?: string; phone?: string };',
-              '''export type PagarmeMethod = "pix" | "credit_card";\n\nexport type PagarmeAddress = {\n  street: string;\n  number: string;\n  complement?: string;\n  zip_code: string;\n  neighborhood: string;\n  city: string;\n  state: string;\n  country: string;\n};\n\nexport type PagarmeCustomer = {\n  name?: string;\n  email?: string;\n  document?: string;\n  area_code?: string;\n  phone?: string;\n  address?: Partial<PagarmeAddress>;\n};'''
-          )
-
-          s = s.replace(
-              '''  const amountCents = Math.round(amount * 100);\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n''',
-              '  const amountCents = Math.round(amount * 100);\n'
-          )
-
-          s = s.replace(
-              '  const normalizedAddress: PagarmeAddress = {\n    ...address,\n    zip_code: address.zip_code.replace(/\\D/g, ""),\n    state: address.state.trim().toUpperCase(),\n    country: address.country.trim().toUpperCase(),\n  };\n',
-              '''  const normalizedAddress: PagarmeAddress = {\n    ...address,\n    zip_code: address.zip_code.replace(/\\D/g, ""),\n    state: address.state.trim().toUpperCase(),\n    country: address.country.trim().toUpperCase(),\n  };\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n'''
-          )
-
-          p.write_text(s)
-          PY
-
-      - name: Auto-fix ESLint issues
-        run: npx eslint . --fix
-
-      - name: Commit fixes
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add .
-            git commit -m "fix(checkout): wire mandatory payer address"
-            git push
-          fi
 
       - name: Lint
         run: npm run lint
