@@ -29,12 +29,31 @@ function buildSplit(platformAmount: number, sellerAmount: number, platformRecipi
   ];
 }
 
+type AddressData = {
+  street: string;
+  number: string;
+  complement?: string;
+  zip_code: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  country?: string;
+};
+type CustomerData = {
+  name?: string;
+  email?: string;
+  type?: "individual" | "company";
+  document?: string;
+  area_code?: string;
+  phone?: string;
+  address?: AddressData;
+};
 type CardData = { number: string; holder_name: string; exp_month: number; exp_year: number; cvv: string; installments?: number; statement_descriptor?: string };
 type Body = {
   payment_method: "pix" | "credit_card" | "debit_card";
   amount: number;
   venda_id?: string;
-  customer?: { name?: string; email?: string; type?: "individual" | "company"; document?: string; area_code?: string; phone?: string };
+  customer?: CustomerData;
   items?: Array<{ amount: number; description: string; quantity: number; code?: string }>;
   card?: CardData;
   pass_surcharge_to_customer?: boolean;
@@ -50,6 +69,24 @@ function luhnValid(value: string) {
     doubleDigit = !doubleDigit;
   }
   return value.length >= 13 && value.length <= 19 && sum % 10 === 0;
+}
+
+function normalizeAddress(address: AddressData | undefined) {
+  if (!address) return null;
+  const normalized = {
+    street: String(address.street ?? "").trim(),
+    number: String(address.number ?? "").trim(),
+    complement: String(address.complement ?? "").trim(),
+    zip_code: String(address.zip_code ?? "").replace(/\D/g, ""),
+    neighborhood: String(address.neighborhood ?? "").trim(),
+    city: String(address.city ?? "").trim(),
+    state: String(address.state ?? "").trim().toUpperCase(),
+    country: String(address.country ?? "BR").trim().toUpperCase(),
+  };
+  if (!normalized.street || !normalized.number || !normalized.zip_code || !normalized.neighborhood || !normalized.city || !normalized.state || !normalized.country) return null;
+  if (!/^\d{8}$/.test(normalized.zip_code)) return null;
+  if (!/^[A-Z]{2}$/.test(normalized.state)) return null;
+  return normalized;
 }
 
 function validateCard(card: CardData | undefined, installments: number) {
@@ -105,6 +142,8 @@ Deno.serve(async (req) => {
 
     if (!["pix", "credit_card", "debit_card"].includes(payment_method)) return json({ error: "payment_method inválido (pix, credit_card ou debit_card)" }, 400);
     if (!Number.isInteger(amount) || amount <= 0) return json({ error: "amount obrigatório (em centavos)" }, 400);
+    const address = normalizeAddress(customer?.address);
+    if (!address) return json({ error: "Endereço do pagante é obrigatório: rua, número, CEP, bairro, cidade e UF (2 letras)." }, 400);
     const installments = card?.installments ?? 1;
     if (payment_method !== "credit_card" && installments !== 1) return json({ error: "Parcelamento disponível apenas no crédito" }, 400);
     if (payment_method === "credit_card" || payment_method === "debit_card") {
@@ -121,11 +160,13 @@ Deno.serve(async (req) => {
     const { totalAmount, platformAmount, sellerAmount, safeInstallments } = calculateSplit(amount, payment_method === "credit_card" ? installments : 1, pass_surcharge_to_customer);
     const splitConfig = seller_recipient_id && platformRecipientId ? buildSplit(platformAmount, sellerAmount, platformRecipientId, seller_recipient_id) : null;
     const orderPayload: Record<string, unknown> = {
+      closed: false,
       items: items ?? [{ amount: totalAmount, description: "Venda PDV", quantity: 1, code: "PDV-001" }],
       customer: {
         name: customer?.name ?? "Cliente", email: customer?.email ?? "cliente@email.com", type: customer?.type ?? "individual",
         document: (customer?.document ?? "00000000000").replace(/\D/g, ""),
         phones: { mobile_phone: { country_code: "55", area_code: customer?.area_code ?? "11", number: (customer?.phone ?? "999999999").replace(/\D/g, "") } },
+        address,
       },
       payments: [] as unknown[],
     };
@@ -137,14 +178,14 @@ Deno.serve(async (req) => {
     } else if (payment_method === "credit_card") {
       const payment: Record<string, unknown> = {
         payment_method: "credit_card", amount: totalAmount,
-        credit_card: { installments: safeInstallments, statement_descriptor: card!.statement_descriptor ?? "PDV", card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv } },
+        credit_card: { operation_type: "auth_and_capture", installments: safeInstallments, statement_descriptor: card!.statement_descriptor ?? "PDV", card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } },
       };
       if (splitConfig) payment.split = splitConfig;
       (orderPayload.payments as unknown[]).push(payment);
     } else {
       const payment: Record<string, unknown> = {
         payment_method: "debit_card", amount: totalAmount,
-        debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv } },
+        debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } },
       };
       if (splitConfig) payment.split = splitConfig;
       (orderPayload.payments as unknown[]).push(payment);
@@ -174,7 +215,7 @@ Deno.serve(async (req) => {
       if (linkError) console.error("Falha ao vincular pedido à venda:", linkError);
     }
 
-    return json({ order_id: pagarmeData.id, status: pagarmeData.status, charge_status: charge?.status ?? null, amount: totalAmount, base_amount: amount, platform_amount: platformAmount, seller_amount: sellerAmount, split_applied: !!splitConfig, pix_qr_code: lastTransaction?.qr_code ?? null, pix_qr_code_url: lastTransaction?.qr_code_url ?? null, pix_expires_at: lastTransaction?.expires_at ?? null, card_status: lastTransaction?.status ?? null, card_brand: lastTransaction?.card?.brand ?? null });
+    return json({ order_id: pagarmeData.id, status: pagarmeData.status, charge_status: charge?.status ?? null, amount: totalAmount, base_amount: amount, platform_amount: platformAmount, seller_amount: sellerAmount, split_applied: !!splitConfig, pix_qr_code: lastTransaction?.qr_code ?? null, pix_qr_code_url: lastTransaction?.qr_code_url ?? null, pix_expires_at: lastTransaction?.expires_at ?? null, card_status: lastTransaction?.status ?? null, card_brand: lastTransaction?.card?.brand ?? null, transaction_code: lastTransaction?.acquirer_response_code ?? lastTransaction?.gateway_response?.code ?? null, transaction_message: lastTransaction?.acquirer_message ?? lastTransaction?.gateway_response?.message ?? null });
   } catch (err) {
     console.error("Erro interno create-order:", err);
     return json({ error: err instanceof Error ? err.message : "Erro desconhecido" }, 500);
