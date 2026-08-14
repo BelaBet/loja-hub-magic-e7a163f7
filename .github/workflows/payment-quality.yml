@@ -46,33 +46,13 @@ jobs:
           )
 
           s = s.replace(
-              '  const amountCents = Math.round(amount * 100);\n',
-              '''  const amountCents = Math.round(amount * 100);\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n'''
+              '''  const amountCents = Math.round(amount * 100);\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n''',
+              '  const amountCents = Math.round(amount * 100);\n'
           )
 
           s = s.replace(
-              '    if (method === "pix") void gerarPix();\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n',
-              '    // O PIX só é criado depois que o operador preencher o endereço obrigatório.\n'
-          )
-
-          s = s.replace(
-              '          payment_method: "pix", amount: amountCents, customer,\n',
-              '          payment_method: "pix", amount: amountCents, customer: payerCustomer,\n'
-          )
-
-          s = s.replace(
-              '          payment_method: "credit_card", amount: amountCents, customer,\n',
-              '          payment_method: "credit_card", amount: amountCents, customer: payerCustomer,\n'
-          )
-
-          s = s.replace(
-              '  const cobrarCartao = async () => {\n    const num = cardNumber.replace(/\\s/g, "");',
-              '  const cobrarCartao = async () => {\n    if (!validatePayerAddress()) return;\n    const num = cardNumber.replace(/\\s/g, "");'
-          )
-
-          s = s.replace(
-              '        {method === "pix" && (\n          <div className="space-y-4">\n            {loading && !pix &&',
-              '''        {method === "pix" && (\n          <div className="space-y-4">\n            {!pix && !loading && (\n              <Button type="button" onClick={() => { if (validatePayerAddress()) void gerarPix(); }} disabled={loading} className="w-full h-11">\n                Gerar PIX\n              </Button>\n            )}\n            {loading && !pix &&'''
+              '  const normalizedAddress: PagarmeAddress = {\n    ...address,\n    zip_code: address.zip_code.replace(/\\D/g, ""),\n    state: address.state.trim().toUpperCase(),\n    country: address.country.trim().toUpperCase(),\n  };\n',
+              '''  const normalizedAddress: PagarmeAddress = {\n    ...address,\n    zip_code: address.zip_code.replace(/\\D/g, ""),\n    state: address.state.trim().toUpperCase(),\n    country: address.country.trim().toUpperCase(),\n  };\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n'''
           )
 
           p.write_text(s)
