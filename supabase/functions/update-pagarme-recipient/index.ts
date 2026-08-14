@@ -17,7 +17,7 @@
 //   "testar conexão" do recipient já salvo, sem editar).
 
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { assertSellerRecipientId, PlatformRecipientError } from "../_shared/platformRecipient.ts";
+import { assertSellerRecipientId, isPlatformRecipient, PlatformRecipientError } from "../_shared/platformRecipient.ts";
 import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
@@ -65,6 +65,12 @@ Deno.serve(async (req) => {
     const dryRun: boolean = body?.dry_run === true;
     const recipientIdRaw: string | null = body?.recipient_id ?? null;
     const recipientId = recipientIdRaw ? recipientIdRaw.trim() : null;
+    // Confirmação explícita — mesmo super_admin não derruba essa proteção
+    // sem querer. Quando confirmado, a loja fica sem split (cobrança única
+    // no recipient da plataforma); create-order/create-pos-order já tratam
+    // esse caso automaticamente (isPlatformRecipient → seller_recipient_id
+    // vira null, sem erro).
+    const allowSameAsPlatform: boolean = body?.allow_same_as_platform === true;
 
     if (!loja_id) return json({ error: "loja_id é obrigatório" }, 400);
 
@@ -72,12 +78,27 @@ Deno.serve(async (req) => {
       return json({ error: "Formato inválido. Esperado: re_xxxxxxxxxxxxxxxx" }, 400);
     }
 
-    // Mesma invariante aplicada em create-order/create-pos-order: o recipient
-    // de uma loja nunca pode ser igual ao recipient da própria plataforma
-    // (evitaria o split funcionar corretamente e confundiria os repasses).
-    // Em dry_run (apenas "testar conexão") não bloqueamos: queremos ver o
-    // status real no provedor, mesmo que o valor coincida com o da plataforma.
-    if (recipientId && !dryRun) {
+    // Mesma invariante aplicada em create-order/create-pos-order: por padrão,
+    // o recipient de uma loja não pode ser igual ao da plataforma (evita
+    // configurar isso sem querer e confundir os repasses). Super admin pode
+    // liberar explicitamente com allow_same_as_platform=true — nesse caso a
+    // loja passa a operar SEM split (cobrança única no recipient da
+    // plataforma), útil pra testar o checkout sem precisar de um segundo
+    // recipient. Em dry_run (só "testar conexão") não bloqueamos de jeito
+    // nenhum: queremos ver o status real no provedor.
+    const isSameAsPlatform = recipientId ? isPlatformRecipient(recipientId) : false;
+    if (recipientId && !dryRun && isSameAsPlatform && !allowSameAsPlatform) {
+      return json(
+        {
+          error:
+            "Este recipient é o mesmo da plataforma. A loja ficará SEM split (cobrança única, sem repasse automático) enquanto isso durar. Confirme explicitamente pra prosseguir.",
+          requires_confirmation: true,
+          same_as_platform: true,
+        },
+        422,
+      );
+    }
+    if (recipientId && !dryRun && !isSameAsPlatform) {
       try {
         assertSellerRecipientId(recipientId);
       } catch (e) {
@@ -163,11 +184,16 @@ Deno.serve(async (req) => {
       loja_id,
       tipo: "pagarme_recipient_alterado",
       titulo: recipientId
-        ? "Recipient de pagamentos atualizado"
+        ? isSameAsPlatform
+          ? "Recipient de pagamentos atualizado — loja SEM split"
+          : "Recipient de pagamentos atualizado"
         : "Recipient de pagamentos removido",
       detalhe: recipientId
         ? `O recipient_id de pagamentos foi alterado de "${lojaAntes.pagarme_recipient_id ?? "(vazio)"}" para "${recipientId}" ` +
-          `por ${userInfo.user?.email ?? "um super administrador"}. Recipient confirmado no Pagar.me: ${recipientInfo?.name ?? recipientId} (status: ${recipientInfo?.status ?? "?"}).`
+          `por ${userInfo.user?.email ?? "um super administrador"}. Recipient confirmado no Pagar.me: ${recipientInfo?.name ?? recipientId} (status: ${recipientInfo?.status ?? "?"}).` +
+          (isSameAsPlatform
+            ? " Atenção: esse recipient é o mesmo da plataforma — a loja está operando SEM split (cobrança única, sem repasse automático) até que um recipient próprio seja vinculado."
+            : "")
         : `O recipient_id de pagamentos ("${lojaAntes.pagarme_recipient_id}") foi removido por ${userInfo.user?.email ?? "um super administrador"}. ` +
           `Novas vendas com split não terão para onde direcionar o repasse até que um novo recipient seja vinculado.`,
       referencia_id: null,

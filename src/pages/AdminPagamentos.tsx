@@ -24,6 +24,11 @@ type RecipientInfo = { id: string; name?: string; status?: string; email?: strin
 
 const RECIPIENT_RE = /^re_[a-zA-Z0-9]+$/;
 
+class FnError extends Error {
+  requiresConfirmation?: boolean;
+  sameAsPlatform?: boolean;
+}
+
 async function callFn(body: Record<string, unknown>) {
   const { data: sessionData } = await supabase.auth.getSession();
   const token = sessionData.session?.access_token;
@@ -34,15 +39,24 @@ async function callFn(body: Record<string, unknown>) {
   if (error) {
     const ctx = (error as any).context;
     let msg = error.message;
+    let parsed: any = null;
     try {
-      const parsed = ctx?.body ? JSON.parse(await new Response(ctx.body).text()) : null;
+      parsed = ctx?.body ? JSON.parse(await new Response(ctx.body).text()) : null;
       if (parsed?.error) msg = parsed.error;
     } catch {
       // mantém a mensagem genérica
     }
-    throw new Error(msg);
+    const err = new FnError(msg);
+    err.requiresConfirmation = parsed?.requires_confirmation === true;
+    err.sameAsPlatform = parsed?.same_as_platform === true;
+    throw err;
   }
-  if (data?.error) throw new Error(data.error);
+  if (data?.error) {
+    const err = new FnError(data.error);
+    err.requiresConfirmation = data?.requires_confirmation === true;
+    err.sameAsPlatform = data?.same_as_platform === true;
+    throw err;
+  }
   return data;
 }
 
@@ -58,6 +72,7 @@ export default function AdminPagamentos() {
   const [testando, setTestando] = useState(false);
   const [statusAtual, setStatusAtual] = useState<{ ok: boolean; recipient: RecipientInfo; erro?: string } | null>(null);
   const [confirmRemover, setConfirmRemover] = useState(false);
+  const [confirmSameAsPlatform, setConfirmSameAsPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -105,7 +120,7 @@ export default function AdminPagamentos() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loja?.id]);
 
-  const salvar = async () => {
+  const salvar = async (allowSameAsPlatform = false) => {
     if (!loja) return;
     const trimmed = novoRecipient.trim();
     if (!RECIPIENT_RE.test(trimmed)) {
@@ -114,13 +129,26 @@ export default function AdminPagamentos() {
     }
     setSalvando(true);
     try {
-      const res = await callFn({ loja_id: loja.id, recipient_id: trimmed });
+      const res = await callFn({
+        loja_id: loja.id,
+        recipient_id: trimmed,
+        ...(allowSameAsPlatform ? { allow_same_as_platform: true } : {}),
+      });
       setLoja({ ...loja, pagarme_recipient_id: trimmed });
       setNovoRecipient("");
       setStatusAtual({ ok: true, recipient: res.recipient });
-      toast.success(`Recipient vinculado: ${res.recipient?.name ?? trimmed}`);
+      setConfirmSameAsPlatform(null);
+      toast.success(
+        allowSameAsPlatform
+          ? `Recipient vinculado (loja SEM split): ${res.recipient?.name ?? trimmed}`
+          : `Recipient vinculado: ${res.recipient?.name ?? trimmed}`,
+      );
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao salvar");
+      if (e.sameAsPlatform && e.requiresConfirmation) {
+        setConfirmSameAsPlatform(trimmed);
+      } else {
+        toast.error(e.message ?? "Erro ao salvar");
+      }
     } finally {
       setSalvando(false);
     }
@@ -273,6 +301,26 @@ export default function AdminPagamentos() {
               onClick={() => void remover()}
             >
               Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!confirmSameAsPlatform} onOpenChange={(o) => !o && setConfirmSameAsPlatform(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Este recipient é o mesmo da plataforma</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enquanto isso durar, essa loja vai operar <strong>sem split</strong> — cada venda vira uma cobrança
+              única, sem repasse automático dividido entre plataforma e loja. Os fluxos de checkout já lidam com
+              isso automaticamente (não vão dar erro), mas você mesma precisa lembrar de trocar por um recipient
+              próprio da loja antes de operar de verdade. Prosseguir?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void salvar(true)}>
+              Confirmar mesmo assim
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
