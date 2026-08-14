@@ -11,7 +11,26 @@ import { brl } from "@/lib/format";
 import { calculateSplit, getInstallmentTable, INSTALLMENT_RATE, BASE_FEE_RATE } from "@/lib/pagarme-split";
 
 export type PagarmeMethod = "pix" | "credit_card";
-export type PagarmeCustomer = { name?: string; email?: string; document?: string; area_code?: string; phone?: string };
+
+export type PagarmeAddress = {
+  street: string;
+  number: string;
+  complement?: string;
+  zip_code: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  country: string;
+};
+
+export type PagarmeCustomer = {
+  name?: string;
+  email?: string;
+  document?: string;
+  area_code?: string;
+  phone?: string;
+  address?: Partial<PagarmeAddress>;
+};
 
 type Props = {
   open: boolean;
@@ -97,6 +116,11 @@ export function PagarmeCheckoutModal({
     zip_code: address.zip_code.replace(/\D/g, ""),
     state: address.state.trim().toUpperCase(),
     country: address.country.trim().toUpperCase(),
+  };
+
+  const payerCustomer = {
+    ...(customer ?? {}),
+    address: normalizedAddress,
   };
 
   const validatePayerAddress = () => {
