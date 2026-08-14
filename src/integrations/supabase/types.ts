@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_operacionais: {
+        Row: {
+          created_at: string
+          detalhe: string | null
+          id: string
+          lido: boolean
+          loja_id: string
+          referencia_id: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          lido?: boolean
+          loja_id: string
+          referencia_id?: string | null
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          detalhe?: string | null
+          id?: string
+          lido?: boolean
+          loja_id?: string
+          referencia_id?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alertas_operacionais_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alertas_operacionais_loja_id_fkey"
+            columns: ["loja_id"]
+            isOneToOne: false
+            referencedRelation: "lojas_publico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           cpf_cnpj: string | null
@@ -1240,6 +1288,15 @@ export type Database = {
       increment_coupon_usage: {
         Args: { p_coupon_id: string }
         Returns: undefined
+      }
+      increment_coupon_usage_forcado: {
+        Args: { p_coupon_id: string }
+        Returns: {
+          code: string
+          estourou_limite: boolean
+          incrementado: boolean
+          loja_id: string
+        }[]
       }
       incrementar_visualizacao_recibo: {
         Args: { p_id: string }
