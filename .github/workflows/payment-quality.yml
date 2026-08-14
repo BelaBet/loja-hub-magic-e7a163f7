@@ -13,8 +13,12 @@ on:
       - main
       - 'fix/**'
 
+permissions:
+  contents: write
+
 jobs:
   quality:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,6 +32,19 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Auto-fix ESLint issues
+        run: npx eslint . --fix
+
+      - name: Commit lint fixes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .
+            git commit -m "style: apply eslint fixes"
+            git push
+          fi
 
       - name: Lint
         run: npm run lint
