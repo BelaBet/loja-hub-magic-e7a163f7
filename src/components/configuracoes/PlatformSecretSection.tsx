@@ -43,6 +43,24 @@ export function PlatformSecretSection() {
     carregar();
   }, []);
 
+  // supabase-js embute o corpo da resposta de erro (não-2xx) em
+  // error.context — sem isso, só sobra a mensagem genérica "Edge Function
+  // returned a non-2xx status code" em vez do motivo real vindo da function.
+  const extrairErro = async (error: unknown, data: unknown): Promise<string | null> => {
+    const fromData = (data as any)?.error;
+    if (fromData) return fromData;
+    const ctx = (error as any)?.context;
+    if (ctx?.body) {
+      try {
+        const parsed = JSON.parse(await new Response(ctx.body).text());
+        if (parsed?.error) return parsed.error;
+      } catch {
+        // segue pro fallback
+      }
+    }
+    return null;
+  };
+
   const salvar = async () => {
     const secret = value.trim();
     if (secret.length < 10) {
@@ -54,9 +72,8 @@ export function PlatformSecretSection() {
       body: { secret_key: secret },
     });
     setSaving(false);
-    const errMsg = (data as any)?.error;
-    if (error || errMsg) {
-      toast.error(errMsg ?? "Falha ao salvar a chave");
+    if (error || (data as any)?.error) {
+      toast.error((await extrairErro(error, data)) ?? "Falha ao salvar a chave");
       return;
     }
     setValue("");
@@ -66,10 +83,10 @@ export function PlatformSecretSection() {
 
   const remover = async () => {
     setSaving(true);
-    const { error } = await supabase.functions.invoke("platform-secret", { method: "DELETE" });
+    const { error, data } = await supabase.functions.invoke("platform-secret", { method: "DELETE" });
     setSaving(false);
-    if (error) {
-      toast.error("Falha ao remover a chave");
+    if (error || (data as any)?.error) {
+      toast.error((await extrairErro(error, data)) ?? "Falha ao remover a chave");
       return;
     }
     toast.success("Chave removida");

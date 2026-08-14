@@ -53,6 +53,24 @@ export function PlatformRecipientSection() {
     carregar();
   }, []);
 
+  // supabase-js embute o corpo da resposta de erro (não-2xx) em
+  // error.context — sem isso, só sobra a mensagem genérica "Edge Function
+  // returned a non-2xx status code" em vez do motivo real vindo da function.
+  const extrairErro = async (error: unknown, data: unknown): Promise<string | null> => {
+    const fromData = (data as any)?.error;
+    if (fromData) return fromData;
+    const ctx = (error as any)?.context;
+    if (ctx?.body) {
+      try {
+        const parsed = JSON.parse(await new Response(ctx.body).text());
+        if (parsed?.error) return parsed.error;
+      } catch {
+        // segue pro fallback
+      }
+    }
+    return null;
+  };
+
   const salvar = async () => {
     const recipientId = value.trim();
     if (!/^re_[a-zA-Z0-9]+$/.test(recipientId)) {
@@ -64,9 +82,8 @@ export function PlatformRecipientSection() {
       body: { recipient_id: recipientId },
     });
     setSaving(false);
-    const errMsg = (data as any)?.error;
-    if (error || errMsg) {
-      toast.error(errMsg ?? "Falha ao salvar o recipient");
+    if (error || (data as any)?.error) {
+      toast.error((await extrairErro(error, data)) ?? "Falha ao salvar o recipient");
       return;
     }
     setValue("");
@@ -76,10 +93,10 @@ export function PlatformRecipientSection() {
 
   const remover = async () => {
     setSaving(true);
-    const { error } = await supabase.functions.invoke("platform-recipient", { method: "DELETE" });
+    const { error, data } = await supabase.functions.invoke("platform-recipient", { method: "DELETE" });
     setSaving(false);
-    if (error) {
-      toast.error("Falha ao remover");
+    if (error || (data as any)?.error) {
+      toast.error((await extrairErro(error, data)) ?? "Falha ao remover");
       return;
     }
     toast.success("Voltou a usar o secret de ambiente / valor padrão");
