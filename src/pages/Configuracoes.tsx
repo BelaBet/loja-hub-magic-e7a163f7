@@ -174,11 +174,11 @@ export default function Configuracoes() {
           });
           const rc = ((loja as any).recibo_config ?? {}) as Partial<ReciboConfig>;
           setRecibo({ ...DEFAULT_RECIBO, ...rc });
-          // has_loja_role('admin') — só admin pode editar
+          // admin da loja OU super admin pode editar
           const { data: isAdmin } = await supabase.rpc("has_loja_role", { _role: "admin" });
-          setCanEdit(isAdmin === true);
           const { data: superData } = await supabase.rpc("is_super_admin");
           setIsSuper(superData === true);
+          setCanEdit(isAdmin === true || superData === true);
         } else {
           toast.error("Loja não encontrada. Apenas administradores acessam esta página.");
         }
