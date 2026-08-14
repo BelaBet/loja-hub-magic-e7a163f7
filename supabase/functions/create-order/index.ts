@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
     let platformRecipientId: string;
     try {
-      platformRecipientId = getPlatformRecipientId();
+      platformRecipientId = await getPlatformRecipientId();
     } catch (e) {
       if (e instanceof PlatformRecipientError) return json({ error: e.message }, 500);
       throw e;
@@ -166,12 +166,12 @@ Deno.serve(async (req) => {
     }
     // Loja que usa o próprio recipient da plataforma: cobrança em recipient
     // único, sem divisão de pagamentos.
-    if (seller_recipient_id && isPlatformRecipient(seller_recipient_id)) {
+    if (seller_recipient_id && (await isPlatformRecipient(seller_recipient_id))) {
       seller_recipient_id = null;
     }
     if (seller_recipient_id) {
       try {
-        assertSellerRecipientId(seller_recipient_id);
+        await assertSellerRecipientId(seller_recipient_id);
       } catch (e) {
         if (e instanceof PlatformRecipientError) return json({ error: e.message }, 400);
         throw e;

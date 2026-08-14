@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     // plataforma), útil pra testar o checkout sem precisar de um segundo
     // recipient. Em dry_run (só "testar conexão") não bloqueamos de jeito
     // nenhum: queremos ver o status real no provedor.
-    const isSameAsPlatform = recipientId ? isPlatformRecipient(recipientId) : false;
+    const isSameAsPlatform = recipientId ? await isPlatformRecipient(recipientId) : false;
     if (recipientId && !dryRun && isSameAsPlatform && !allowSameAsPlatform) {
       return json(
         {
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     }
     if (recipientId && !dryRun && !isSameAsPlatform) {
       try {
-        assertSellerRecipientId(recipientId);
+        await assertSellerRecipientId(recipientId);
       } catch (e) {
         if (e instanceof PlatformRecipientError) return json({ error: e.message }, 422);
         throw e;

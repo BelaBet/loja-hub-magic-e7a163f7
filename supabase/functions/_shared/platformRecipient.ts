@@ -1,7 +1,20 @@
 // Validação central do recipient da plataforma.
 // Todo fluxo de pagamento DEVE resolver o recipient por aqui.
+//
+// Ordem de precedência (mesmo padrão de _shared/pagarmeSecret.ts):
+// 1) Tabela public.plataforma_credenciais (salva e validada pelo super
+//    admin na tela de Configurações → "Recipient da plataforma") — fonte
+//    de verdade quando presente, porque é conferida no Pagar.me antes de
+//    gravar;
+// 2) Secret de ambiente PAGARME_PLATFORM_RECIPIENT_ID;
+// 3) Valor de fallback fixo no código — só existe pra não quebrar em
+//    ambientes que ainda não configuraram nenhum dos dois acima.
 
-export const EXPECTED_PLATFORM_RECIPIENT_ID = "re_cmsov4l64001u0l9t1dkhy8gw";
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+export const PLATFORM_RECIPIENT_CHAVE = "PAGARME_PLATFORM_RECIPIENT_ID";
+
+const FALLBACK_PLATFORM_RECIPIENT_ID = "re_cmsov4l64001u0l9t1dkhy8gw";
 
 const RECIPIENT_FORMAT = /^re_[a-z0-9]{20,}$/i;
 
@@ -12,45 +25,59 @@ export class PlatformRecipientError extends Error {
   }
 }
 
-/**
- * Retorna o recipient da plataforma, garantindo que:
- *  - o secret está configurado;
- *  - tem formato válido (re_...);
- *  - é exatamente o recipient vigente da plataforma.
- */
-export function getPlatformRecipientId(): string {
-  const value = (Deno.env.get("PAGARME_PLATFORM_RECIPIENT_ID") ?? "").trim();
+let cached: { value: string; at: number } | null = null;
+const TTL_MS = 30_000;
 
-  if (!value) {
-    throw new PlatformRecipientError("PAGARME_PLATFORM_RECIPIENT_ID não configurada");
-  }
+function envFallback(): string | null {
+  return (Deno.env.get("PAGARME_PLATFORM_RECIPIENT_ID") ?? "").trim() || null;
+}
+
+/**
+ * Resolve o recipient_id vigente da plataforma, garantindo formato válido.
+ */
+export async function getPlatformRecipientId(): Promise<string> {
+  if (cached && Date.now() - cached.at < TTL_MS) return cached.value;
+
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { data } = await admin
+    .from("plataforma_credenciais")
+    .select("valor")
+    .eq("chave", PLATFORM_RECIPIENT_CHAVE)
+    .maybeSingle();
+
+  const value = (data?.valor ?? envFallback() ?? FALLBACK_PLATFORM_RECIPIENT_ID).trim();
+
   if (!RECIPIENT_FORMAT.test(value)) {
-    throw new PlatformRecipientError("PAGARME_PLATFORM_RECIPIENT_ID com formato inválido");
-  }
-  if (value !== EXPECTED_PLATFORM_RECIPIENT_ID) {
-    console.error(
-      `[platform-recipient] mismatch: esperado ${EXPECTED_PLATFORM_RECIPIENT_ID}, recebido ${value}`,
-    );
     throw new PlatformRecipientError(
-      "PAGARME_PLATFORM_RECIPIENT_ID desatualizada — atualize o secret da plataforma",
+      "Recipient da plataforma com formato inválido — configure em Configurações → Recipient da plataforma.",
     );
   }
+
+  cached = { value, at: Date.now() };
   return value;
 }
 
+/** Limpa o cache em memória — chamar sempre que o valor salvo mudar. */
+export function clearPlatformRecipientCache(): void {
+  cached = null;
+}
+
 /** true quando o recipient informado é o próprio recipient da plataforma. */
-export function isPlatformRecipient(recipientId: string): boolean {
-  return recipientId.trim() === EXPECTED_PLATFORM_RECIPIENT_ID;
+export async function isPlatformRecipient(recipientId: string): Promise<boolean> {
+  const platformId = await getPlatformRecipientId();
+  return recipientId.trim() === platformId;
 }
 
 /** Valida o recipient do vendedor (não pode ser igual ao da plataforma). */
-export function assertSellerRecipientId(sellerRecipientId: string): void {
+export async function assertSellerRecipientId(sellerRecipientId: string): Promise<void> {
   if (!RECIPIENT_FORMAT.test(sellerRecipientId)) {
     throw new PlatformRecipientError("recipient do lojista com formato inválido");
   }
-  if (sellerRecipientId === EXPECTED_PLATFORM_RECIPIENT_ID) {
-    throw new PlatformRecipientError(
-      "recipient do lojista não pode ser igual ao da plataforma",
-    );
+  const platformId = await getPlatformRecipientId();
+  if (sellerRecipientId === platformId) {
+    throw new PlatformRecipientError("recipient do lojista não pode ser igual ao da plataforma");
   }
 }

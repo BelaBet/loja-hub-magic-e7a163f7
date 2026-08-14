@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     if (!secretKey) return json({ error: "Chave do provedor de pagamentos não configurada. Um super administrador pode salvá-la em Configurações." }, 500);
     let platformRecipientId: string;
     try {
-      platformRecipientId = getPlatformRecipientId();
+      platformRecipientId = await getPlatformRecipientId();
     } catch (e) {
       if (e instanceof PlatformRecipientError) return json({ error: e.message }, 500);
       throw e;
@@ -156,12 +156,12 @@ Deno.serve(async (req) => {
     const rawSellerRecipientId: string | null = lojaRow?.pagarme_recipient_id ?? null;
     // Loja que usa o próprio recipient da plataforma: recipient único, sem divisão.
     const seller_recipient_id: string | null =
-      rawSellerRecipientId && isPlatformRecipient(rawSellerRecipientId)
+      rawSellerRecipientId && (await isPlatformRecipient(rawSellerRecipientId))
         ? null
         : rawSellerRecipientId;
     if (seller_recipient_id) {
       try {
-        assertSellerRecipientId(seller_recipient_id);
+        await assertSellerRecipientId(seller_recipient_id);
       } catch (e) {
         if (e instanceof PlatformRecipientError) return json({ error: e.message }, 400);
         throw e;

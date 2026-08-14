@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Loader2, Save, Settings, Store, CreditCard, ExternalLink, Receipt, Upload, X } from "lucide-react";
 import { MaquininhasSection } from "@/components/configuracoes/MaquininhasSection";
 import { PlatformSecretSection } from "@/components/configuracoes/PlatformSecretSection";
+import { PlatformRecipientSection } from "@/components/configuracoes/PlatformRecipientSection";
 import { brl } from "@/lib/format";
 
 function ReciboPreview({
@@ -395,6 +396,7 @@ export default function Configuracoes() {
 
             {/* Chave do provedor de pagamentos — apenas super admin */}
             {isSuper && <PlatformSecretSection />}
+            {isSuper && <PlatformRecipientSection />}
 
             {/* Personalização do recibo */}
             <Card className="p-6 space-y-5">
