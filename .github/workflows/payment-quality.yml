@@ -33,16 +33,61 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Patch checkout address integration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/components/PagarmeCheckoutModal.tsx')
+          s = p.read_text()
+
+          s = s.replace(
+              'export type PagarmeMethod = "pix" | "credit_card";\nexport type PagarmeCustomer = { name?: string; email?: string; document?: string; area_code?: string; phone?: string };',
+              '''export type PagarmeMethod = "pix" | "credit_card";\n\nexport type PagarmeAddress = {\n  street: string;\n  number: string;\n  complement?: string;\n  zip_code: string;\n  neighborhood: string;\n  city: string;\n  state: string;\n  country: string;\n};\n\nexport type PagarmeCustomer = {\n  name?: string;\n  email?: string;\n  document?: string;\n  area_code?: string;\n  phone?: string;\n  address?: Partial<PagarmeAddress>;\n};'''
+          )
+
+          s = s.replace(
+              '  const amountCents = Math.round(amount * 100);\n',
+              '''  const amountCents = Math.round(amount * 100);\n\n  const payerCustomer = {\n    ...(customer ?? {}),\n    address: normalizedAddress,\n  };\n'''
+          )
+
+          s = s.replace(
+              '    if (method === "pix") void gerarPix();\n    // eslint-disable-next-line react-hooks/exhaustive-deps\n',
+              '    // O PIX só é criado depois que o operador preencher o endereço obrigatório.\n'
+          )
+
+          s = s.replace(
+              '          payment_method: "pix", amount: amountCents, customer,\n',
+              '          payment_method: "pix", amount: amountCents, customer: payerCustomer,\n'
+          )
+
+          s = s.replace(
+              '          payment_method: "credit_card", amount: amountCents, customer,\n',
+              '          payment_method: "credit_card", amount: amountCents, customer: payerCustomer,\n'
+          )
+
+          s = s.replace(
+              '  const cobrarCartao = async () => {\n    const num = cardNumber.replace(/\\s/g, "");',
+              '  const cobrarCartao = async () => {\n    if (!validatePayerAddress()) return;\n    const num = cardNumber.replace(/\\s/g, "");'
+          )
+
+          s = s.replace(
+              '        {method === "pix" && (\n          <div className="space-y-4">\n            {loading && !pix &&',
+              '''        {method === "pix" && (\n          <div className="space-y-4">\n            {!pix && !loading && (\n              <Button type="button" onClick={() => { if (validatePayerAddress()) void gerarPix(); }} disabled={loading} className="w-full h-11">\n                Gerar PIX\n              </Button>\n            )}\n            {loading && !pix &&'''
+          )
+
+          p.write_text(s)
+          PY
+
       - name: Auto-fix ESLint issues
         run: npx eslint . --fix
 
-      - name: Commit lint fixes
+      - name: Commit fixes
         run: |
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .
-            git commit -m "style: apply eslint fixes"
+            git commit -m "fix(checkout): wire mandatory payer address"
             git push
           fi
 
