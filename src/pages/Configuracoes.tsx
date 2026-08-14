@@ -17,6 +17,7 @@ import { MaquininhasSection } from "@/components/configuracoes/MaquininhasSectio
 import { PlatformSecretSection } from "@/components/configuracoes/PlatformSecretSection";
 import { PlatformRecipientSection } from "@/components/configuracoes/PlatformRecipientSection";
 import { brl } from "@/lib/format";
+import { useLoja } from "@/contexts/LojaContext";
 
 function ReciboPreview({
   loja,
@@ -132,6 +133,7 @@ const lojaSchema = z.object({
 });
 
 export default function Configuracoes() {
+  const { lojaAtivaId } = useLoja();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
@@ -150,12 +152,14 @@ export default function Configuracoes() {
   const [errors, setErrors] = useState<Partial<Record<keyof LojaForm, string>>>({});
 
   useEffect(() => {
+    if (!lojaAtivaId) { setLoading(false); return; }
     (async () => {
       setLoading(true);
       try {
         const { data: loja, error } = await supabase
           .from("lojas")
           .select("id,nome,email,telefone,cnpj,pagarme_recipient_id,endereco,recibo_config")
+          .eq("id", lojaAtivaId)
           .maybeSingle();
         if (error) throw error;
         if (loja) {
@@ -184,7 +188,7 @@ export default function Configuracoes() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [lojaAtivaId]);
 
   const update = <K extends keyof LojaForm>(key: K, value: LojaForm[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
