@@ -1,0 +1,73 @@
+name: Repair checkout modal
+
+on:
+  push:
+    branches: [fix/payment-flow-audit]
+    paths:
+      - '.github/workflows/repair-checkout-modal.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore stable modal and add mandatory payer address
+        shell: python
+        run: |
+          import subprocess
+          from pathlib import Path
+
+          path = Path('src/components/PagarmeCheckoutModal.tsx')
+          subprocess.run(['git', 'checkout', 'edc4b5230cee28945fd8bf3a1e9ef8773d351270', '--', str(path)], check=True)
+          text = path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              'export type PagarmeCustomer = {\n  name?: string;\n  email?: string;\n  document?: string;\n  area_code?: string;\n  phone?: string;\n};',
+              '''export type PagarmeAddress = {\n  street: string;\n  number: string;\n  complement?: string;\n  zip_code: string;\n  neighborhood: string;\n  city: string;\n  state: string;\n  country: string;\n};\n\nexport type PagarmeCustomer = {\n  name?: string;\n  email?: string;\n  document?: string;\n  area_code?: string;\n  phone?: string;\n  address?: PagarmeAddress;\n};''')
+
+          text = text.replace(
+              '  const [showTable, setShowTable] = useState(false);',
+              '''  const [showTable, setShowTable] = useState(false);\n\n  // Endereço do pagador — obrigatório em todos os meios de pagamento\n  const [address, setAddress] = useState<PagarmeAddress>({\n    street: customer?.address?.street ?? "",\n    number: customer?.address?.number ?? "",\n    complement: customer?.address?.complement ?? "",\n    zip_code: customer?.address?.zip_code ?? "",\n    neighborhood: customer?.address?.neighborhood ?? "",\n    city: customer?.address?.city ?? "",\n    state: customer?.address?.state ?? "",\n    country: customer?.address?.country ?? "BR",\n  });''')
+
+          text = text.replace(
+              '  const amountCents = Math.round(amount * 100);',
+              '''  const amountCents = Math.round(amount * 100);\n\n  const updateAddress = (field: keyof PagarmeAddress, value: string) => {\n    setAddress((current) => ({ ...current, [field]: value }));\n  };\n\n  const normalizedAddress: PagarmeAddress = {\n    ...address,\n    zip_code: address.zip_code.replace(/\\D/g, ""),\n    state: address.state.trim().toUpperCase(),\n    country: address.country.trim().toUpperCase(),\n  };\n\n  const validatePayerAddress = () => {\n    const required: Array<[keyof PagarmeAddress, string]> = [\n      ["street", "Rua"],\n      ["number", "Número"],\n      ["zip_code", "CEP"],\n      ["neighborhood", "Bairro"],\n      ["city", "Cidade"],\n      ["state", "UF"],\n      ["country", "País"],\n    ];\n    const missing = required.find(([field]) => !String(normalizedAddress[field] ?? "").trim());\n    if (missing) {\n      toast.error(`Preencha o campo obrigatório: ${missing[1]}`);\n      return false;\n    }\n    if (normalizedAddress.zip_code.length !== 8) {\n      toast.error("Informe um CEP válido com 8 dígitos");\n      return false;\n    }\n    if (normalizedAddress.state.length !== 2) {\n      toast.error("Informe a UF com 2 letras");\n      return false;\n    }\n    return true;\n  };''')
+
+          text = text.replace(
+              '    setLoading(true);\n    try {\n      const { data, error } = await supabase.functions.invoke("create-order", {\n        body: {\n          payment_method: "pix",\n          amount: amountCents,\n          customer,',
+              '    if (!validatePayerAddress()) return;\n    setLoading(true);\n    try {\n      const { data, error } = await supabase.functions.invoke("create-order", {\n        body: {\n          payment_method: "pix",\n          amount: amountCents,\n          customer: { ...customer, address: normalizedAddress },',
+              1)
+
+          text = text.replace(
+              '    setLoading(true);\n    try {\n      const { data, error } = await supabase.functions.invoke("create-order", {\n        body: {\n          payment_method: "credit_card",\n          amount: amountCents,\n          customer,',
+              '    if (!validatePayerAddress()) return;\n    setLoading(true);\n    try {\n      const { data, error } = await supabase.functions.invoke("create-order", {\n        body: {\n          payment_method: "credit_card",\n          amount: amountCents,\n          customer: { ...customer, address: normalizedAddress },',
+              1)
+
+          text = text.replace(
+              '            installments,\n          },',
+              '''            installments,\n            billing_address: {\n              line_1: `${normalizedAddress.number}, ${normalizedAddress.street}${normalizedAddress.neighborhood ? `, ${normalizedAddress.neighborhood}` : ""}`,\n              zip_code: normalizedAddress.zip_code,\n              city: normalizedAddress.city,\n              state: normalizedAddress.state,\n              country: normalizedAddress.country,\n            },\n          },''',
+              1)
+
+          marker = '        </DialogHeader>\n'
+          address_ui = '''\n        <div className="space-y-3 rounded-lg border bg-muted/20 p-3">\n          <div>\n            <p className="text-sm font-semibold">Endereço do pagador</p>\n            <p className="text-xs text-muted-foreground">Obrigatório para todos os meios de pagamento.</p>\n          </div>\n          <div className="grid grid-cols-[1fr_110px] gap-2">\n            <div>\n              <Label>Rua *</Label>\n              <Input value={address.street} onChange={(e) => updateAddress("street", e.target.value)} placeholder="Avenida / Rua" />\n            </div>\n            <div>\n              <Label>Número *</Label>\n              <Input value={address.number} onChange={(e) => updateAddress("number", e.target.value)} placeholder="123" inputMode="numeric" />\n            </div>\n          </div>\n          <div className="grid grid-cols-2 gap-2">\n            <div>\n              <Label>Complemento</Label>\n              <Input value={address.complement} onChange={(e) => updateAddress("complement", e.target.value)} placeholder="Apto, sala..." />\n            </div>\n            <div>\n              <Label>CEP *</Label>\n              <Input value={address.zip_code} onChange={(e) => updateAddress("zip_code", e.target.value.replace(/\\D/g, "").slice(0, 8))} placeholder="00000-000" inputMode="numeric" maxLength={8} className="mono" />\n            </div>\n          </div>\n          <div className="grid grid-cols-2 gap-2">\n            <div>\n              <Label>Bairro *</Label>\n              <Input value={address.neighborhood} onChange={(e) => updateAddress("neighborhood", e.target.value)} placeholder="Bairro" />\n            </div>\n            <div>\n              <Label>Cidade *</Label>\n              <Input value={address.city} onChange={(e) => updateAddress("city", e.target.value)} placeholder="Cidade" />\n            </div>\n          </div>\n          <div className="grid grid-cols-[90px_1fr] gap-2">\n            <div>\n              <Label>UF *</Label>\n              <Input value={address.state} onChange={(e) => updateAddress("state", e.target.value.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 2))} placeholder="SP" maxLength={2} />\n            </div>\n            <div>\n              <Label>País *</Label>\n              <Input value={address.country} onChange={(e) => updateAddress("country", e.target.value.toUpperCase())} placeholder="BR" maxLength={2} />\n            </div>\n          </div>\n        </div>\n'''
+          if marker not in text:
+              raise SystemExit('DialogHeader marker not found')
+          text = text.replace(marker, marker + address_ui, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Commit repaired modal
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/PagarmeCheckoutModal.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(payment): restore checkout modal and add payer address"
+          git push

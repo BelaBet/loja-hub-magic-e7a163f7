@@ -118,7 +118,7 @@ const Estoque = () => {
       if (error) throw error;
 
       const ids = (produtos ?? []).map((p) => p.id);
-      let movMap = new Map<string, string>();
+      const movMap = new Map<string, string>();
       if (ids.length) {
         const { data: movs } = await supabase
           .from("movimentacoes_estoque")
