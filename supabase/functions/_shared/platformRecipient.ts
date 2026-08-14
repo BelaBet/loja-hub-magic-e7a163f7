@@ -14,7 +14,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 export const PLATFORM_RECIPIENT_CHAVE = "PAGARME_PLATFORM_RECIPIENT_ID";
 
-const FALLBACK_PLATFORM_RECIPIENT_ID = "re_cmsov4l64001u0l9t1dkhy8gw";
+const FALLBACK_PLATFORM_RECIPIENT_ID = "re_cmsov7qej003a0l9thvhq2gfi";
 
 const RECIPIENT_FORMAT = /^re_[a-z0-9]{20,}$/i;
 

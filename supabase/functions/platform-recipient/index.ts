@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     );
 
     const envValue = (Deno.env.get("PAGARME_PLATFORM_RECIPIENT_ID") ?? "").trim() || null;
-    const FALLBACK = "re_cmsov4l64001u0l9t1dkhy8gw";
+    const FALLBACK = "re_cmsov7qej003a0l9thvhq2gfi";
 
     if (req.method === "GET") {
       const { data: row } = await admin
