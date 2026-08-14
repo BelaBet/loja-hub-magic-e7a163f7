@@ -15,8 +15,8 @@ function load(catalogId: string): CatalogCartItem[] {
   try {
     const raw = localStorage.getItem(storageKey(catalogId));
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed as CatalogCartItem[] : [];
   } catch {
     return [];
   }
@@ -34,7 +34,9 @@ export function useCatalogCart(catalogId: string | undefined) {
     if (!catalogId) return;
     try {
       localStorage.setItem(storageKey(catalogId), JSON.stringify(items));
-    } catch {}
+    } catch {
+      // Storage may be unavailable in private browsing or restricted environments.
+    }
   }, [catalogId, items]);
 
   const addItem = useCallback((item: Omit<CatalogCartItem, "qty">, qty: number) => {
