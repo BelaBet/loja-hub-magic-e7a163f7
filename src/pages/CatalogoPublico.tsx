@@ -12,9 +12,7 @@ import { toast } from "sonner";
 import { useCatalogCart } from "@/hooks/useCatalogCart";
 import { QuantitySelector } from "@/components/catalogo/QuantitySelector";
 import { CartDrawer } from "@/components/catalogo/CartDrawer";
-import { CheckoutForm, type CheckoutData } from "@/components/catalogo/CheckoutForm";
-import { buildOrderWhatsAppMessage } from "@/lib/buildOrderWhatsAppMessage";
-import { whatsappDigits } from "@/components/recibos/masks";
+import { CatalogPaymentModal } from "@/components/catalogo/CatalogPaymentModal";
 import { BACKGROUND_PRESETS, type BackgroundType } from "@/lib/catalogBackgrounds";
 import { cn } from "@/lib/utils";
 
@@ -131,19 +129,9 @@ const CatalogoPublico = () => {
     toast.success("Produto adicionado!");
   };
 
-  const handleConfirmCheckout = (data: CheckoutData) => {
-    if (!loja) return;
-    const tel = whatsappDigits(loja.telefone);
-    if (!tel) {
-      toast.error("Esta loja não tem WhatsApp configurado.");
-      return;
-    }
-    const msg = buildOrderWhatsAppMessage(loja.nome, cart.items, cart.totalValue, data);
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank");
+  const handlePaymentSuccess = () => {
     cart.clear();
-    setCheckoutOpen(false);
     setCartOpen(false);
-    toast.success("Pedido enviado pelo WhatsApp!");
   };
 
   if (erro) {
@@ -373,12 +361,17 @@ const CatalogoPublico = () => {
         brandColor={loja?.cor_primaria || "#3F3C7A"}
       />
 
-      <CheckoutForm
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        onConfirm={handleConfirmCheckout}
-        brandColor={loja?.cor_secundaria || loja?.cor_primaria || "#D8A14A"}
-      />
+      {loja && (
+        <CatalogPaymentModal
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          catalogId={loja.id}
+          lojaNome={loja.nome}
+          items={cart.items}
+          totalValue={cart.totalValue}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 };
