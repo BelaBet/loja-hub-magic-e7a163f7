@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isTechnicalAlertType } from "@/lib/alertTypes";
 
 export interface AlertaOperacional {
   id: string;
@@ -14,6 +15,11 @@ export interface AlertaOperacional {
 
 const LIMITE = 30;
 
+/**
+ * Alertas voltados pro dia a dia do lojista (sino de notificações). Alertas
+ * técnicos (webhook, recipient de pagamento) ficam de fora daqui — vivem em
+ * /admin/alertas-tecnicos, só pra super admin. Ver src/lib/alertTypes.ts.
+ */
 export function useAlertasOperacionais(lojaId: string | null) {
   const [alertas, setAlertas] = useState<AlertaOperacional[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +36,13 @@ export function useAlertasOperacionais(lojaId: string | null) {
       .select("*")
       .eq("loja_id", lojaId)
       .order("created_at", { ascending: false })
-      .limit(LIMITE);
-    if (!error) setAlertas((data as unknown as AlertaOperacional[]) ?? []);
+      .limit(LIMITE * 2); // margem pra sobrar LIMITE depois de filtrar os técnicos
+    if (!error) {
+      const negocio = ((data as unknown as AlertaOperacional[]) ?? []).filter(
+        (a) => !isTechnicalAlertType(a.tipo),
+      );
+      setAlertas(negocio.slice(0, LIMITE));
+    }
     setLoading(false);
   }, [lojaId]);
 

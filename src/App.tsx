@@ -23,6 +23,7 @@ import NotaFiscalDetalhe from "./pages/NotaFiscalDetalhe.tsx";
 import CatalogoPublico from "./pages/CatalogoPublico.tsx";
 import Admin from "./pages/Admin.tsx";
 import AdminPagamentos from "./pages/AdminPagamentos.tsx";
+import AdminAlertasTecnicos from "./pages/AdminAlertasTecnicos.tsx";
 import WebhookAuditoria from "./pages/WebhookAuditoria.tsx";
 import TestePagamento from "./pages/TestePagamento.tsx";
 import Configuracoes from "./pages/Configuracoes.tsx";
@@ -72,6 +73,7 @@ const App = () => (
           <Route path="/c/:lojaId" element={<CatalogoPublico />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/lojas/:lojaId/pagamentos" element={<AdminPagamentos />} />
+          <Route path="/admin/alertas-tecnicos" element={<AdminAlertasTecnicos />} />
           <Route path="/admin/webhooks" element={<WebhookAuditoria />} />
           <Route path="/admin/teste-pagamento" element={<TestePagamento />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
