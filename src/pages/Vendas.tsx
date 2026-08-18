@@ -446,12 +446,12 @@ const Vendas = () => {
       return;
     }
     // Pagamentos online
-    if (pagamento === "pix" || pagamento === "cartao_credito") {
+    if (pagamento === "pix" || pagamento === "cartao_credito" || pagamento === "cartao_debito") {
       if (!sellerRecipientId) {
         toast.error("Configure o Recipient ID da loja em Configurações antes de cobrar.");
         return;
       }
-      setPagarmeMethod(pagamento === "pix" ? "pix" : "credit_card");
+      setPagarmeMethod(pagamento === "pix" ? "pix" : pagamento === "cartao_credito" ? "credit_card" : "debit_card");
       setPagarmeOpen(true);
       return;
     }

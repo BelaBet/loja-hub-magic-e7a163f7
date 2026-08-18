@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { brl } from "@/lib/format";
 import { calculateSplit, getInstallmentTable, INSTALLMENT_RATE, BASE_FEE_RATE } from "@/lib/pagarme-split";
 
-export type PagarmeMethod = "pix" | "credit_card";
+export type PagarmeMethod = "pix" | "credit_card" | "debit_card";
 
 export type PagarmeAddress = {
   street: string;
@@ -240,11 +240,11 @@ export function PagarmeCheckoutModal({
     try {
       const { data, error } = await supabase.functions.invoke("create-order", {
         body: {
-          payment_method: "credit_card", amount: amountCents, customer,
+          payment_method: method, amount: amountCents, customer,
           venda_id: vendaId ?? undefined,
           seller_recipient_id: sellerRecipientId ?? undefined,
           pass_surcharge_to_customer: true,
-          card: { number: num, holder_name: holder.trim(), exp_month: month, exp_year: year, cvv, installments },
+          card: { number: num, holder_name: holder.trim(), exp_month: month, exp_year: year, cvv, installments: method === "credit_card" ? installments : 1 },
         },
       });
       if (error) throw new Error(error.message);
@@ -252,7 +252,7 @@ export function PagarmeCheckoutModal({
       const status = data?.charge_status ?? data?.status;
       if (status === "paid" || data?.status === "paid") {
         toast.success("Pagamento aprovado");
-        onConfirmed({ order_id: data.order_id, status: "paid", amount_charged: (data?.amount ?? amountCents) / 100, installments, base_amount: data?.base_amount, platform_amount: data?.platform_amount, seller_amount: data?.seller_amount, total_amount: data?.amount });
+        onConfirmed({ order_id: data.order_id, status: "paid", amount_charged: (data?.amount ?? amountCents) / 100, installments: method === "credit_card" ? installments : 1, base_amount: data?.base_amount, platform_amount: data?.platform_amount, seller_amount: data?.seller_amount, total_amount: data?.amount });
       } else if (status === "authorized") {
         toast.info("Pagamento autorizado. Aguardando captura/confirmacão do gateway.");
       } else {
@@ -341,7 +341,7 @@ export function PagarmeCheckoutModal({
           </div>
         )}
 
-        {method === "credit_card" && (
+        {(method === "credit_card" || method === "debit_card") && (
           <div className="space-y-3">
             <div><Label>Número do cartão</Label><Input value={cardNumber} onChange={(e) => setCardNumber(e.target.value.replace(/[^0-9 ]/g, ""))} placeholder="0000 0000 0000 0000" inputMode="numeric" maxLength={19} className="mono" /></div>
             <div><Label>Nome impresso</Label><Input value={holder} onChange={(e) => setHolder(e.target.value.toUpperCase())} placeholder="NOME COMPLETO" /></div>
@@ -350,18 +350,20 @@ export function PagarmeCheckoutModal({
               <div><Label>Ano</Label><Input value={expYear} onChange={(e) => setExpYear(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="AA" maxLength={4} inputMode="numeric" className="mono" /></div>
               <div><Label>CVV</Label><Input value={cvv} onChange={(e) => setCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" maxLength={4} inputMode="numeric" className="mono" /></div>
             </div>
-            <div>
-              <div className="flex items-center justify-between"><Label>Parcelas</Label><button type="button" onClick={() => setShowTable((v) => !v)} className="text-xs text-primary hover:underline">{showTable ? "Ocultar tabela" : "Ver tabela completa"}</button></div>
-              <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}><SelectTrigger className="mono mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{installmentTable.map((row) => <SelectItem key={row.installments} value={String(row.installments)}>{row.label}</SelectItem>)}</SelectContent></Select>
-              <div className="mt-3 rounded-md bg-muted/40 p-3 space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="num">{brl(amountCents / 100)}</span></div>
-                {split.baseFeeAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Taxas ({(BASE_FEE_RATE * 100).toFixed(2)}%)</span><span className="num">+ {brl(split.baseFeeAmount / 100)}</span></div>}
-                {split.installmentSurcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Parcelamento ({(INSTALLMENT_RATE * (installments - 1) * 100).toFixed(2)}%)</span><span className="num">+ {brl(split.installmentSurcharge / 100)}</span></div>}
-                <div className="flex justify-between font-semibold border-t pt-1.5"><span>Total cobrado</span><span className="num">{brl(split.totalAmount / 100)}</span></div>
+            {method === "credit_card" && (
+              <div>
+                <div className="flex items-center justify-between"><Label>Parcelas</Label><button type="button" onClick={() => setShowTable((v) => !v)} className="text-xs text-primary hover:underline">{showTable ? "Ocultar tabela" : "Ver tabela completa"}</button></div>
+                <Select value={String(installments)} onValueChange={(v) => setInstallments(Number(v))}><SelectTrigger className="mono mt-1.5"><SelectValue /></SelectTrigger><SelectContent>{installmentTable.map((row) => <SelectItem key={row.installments} value={String(row.installments)}>{row.label}</SelectItem>)}</SelectContent></Select>
+                {showTable && <div className="mt-3 max-h-56 overflow-y-auto rounded-md border"><table className="w-full text-xs"><thead className="bg-muted/60 text-muted-foreground"><tr><th className="px-2 py-1.5 text-left">Parc.</th><th className="px-2 py-1.5 text-right">Por parcela</th><th className="px-2 py-1.5 text-right">Total</th></tr></thead><tbody className="num">{installmentTable.map((row) => <tr key={row.installments} onClick={() => { setInstallments(row.installments); setShowTable(false); }} className={`cursor-pointer border-t hover:bg-muted/40 ${row.installments === installments ? "bg-primary/10" : ""}`}><td className="px-2 py-1.5">{row.installments}×</td><td className="px-2 py-1.5 text-right">{brl(row.perInstallment / 100)}</td><td className="px-2 py-1.5 text-right">{brl(row.totalAmount / 100)}</td></tr>)}</tbody></table></div>}
               </div>
-              {showTable && <div className="mt-3 max-h-56 overflow-y-auto rounded-md border"><table className="w-full text-xs"><thead className="bg-muted/60 text-muted-foreground"><tr><th className="px-2 py-1.5 text-left">Parc.</th><th className="px-2 py-1.5 text-right">Por parcela</th><th className="px-2 py-1.5 text-right">Total</th></tr></thead><tbody className="num">{installmentTable.map((row) => <tr key={row.installments} onClick={() => { setInstallments(row.installments); setShowTable(false); }} className={`cursor-pointer border-t hover:bg-muted/40 ${row.installments === installments ? "bg-primary/10" : ""}`}><td className="px-2 py-1.5">{row.installments}×</td><td className="px-2 py-1.5 text-right">{brl(row.perInstallment / 100)}</td><td className="px-2 py-1.5 text-right">{brl(row.totalAmount / 100)}</td></tr>)}</tbody></table></div>}
+            )}
+            <div className="rounded-md bg-muted/40 p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span className="num">{brl(amountCents / 100)}</span></div>
+              {split.baseFeeAmount > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Taxas ({(BASE_FEE_RATE * 100).toFixed(2)}%)</span><span className="num">+ {brl(split.baseFeeAmount / 100)}</span></div>}
+              {method === "credit_card" && split.installmentSurcharge > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Parcelamento ({(INSTALLMENT_RATE * (installments - 1) * 100).toFixed(2)}%)</span><span className="num">+ {brl(split.installmentSurcharge / 100)}</span></div>}
+              <div className="flex justify-between font-semibold border-t pt-1.5"><span>Total cobrado</span><span className="num">{brl(split.totalAmount / 100)}</span></div>
             </div>
-            <Button type="button" onClick={cobrarCartao} disabled={loading} className="w-full h-11">{loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando…</> : "Pagar com cartão"}</Button>
+            <Button type="button" onClick={cobrarCartao} disabled={loading} className="w-full h-11">{loading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Processando…</> : `Pagar com ${method === "debit_card" ? "débito" : "crédito"}`}</Button>
           </div>
         )}
       </DialogContent>
