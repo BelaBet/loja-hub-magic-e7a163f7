@@ -21,8 +21,6 @@ import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
 const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
-// Mesmas taxas de src/lib/pagarme-split.ts / create-order — mantidas em
-// sincronia manualmente (ver aviso em src/lib/pagarme-split.ts).
 const PLATFORM_BASE_RATE = 0.0096;
 const INSTALLMENT_RATE = 0.011;
 const STONE_MDR_RATE = 0.0204;
@@ -116,15 +114,28 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // ─── 1. Loja precisa existir ───────────────────────────────────────────
     const { data: loja } = await admin.from("lojas").select("id, nome, pagarme_recipient_id").eq("id", catalogId).maybeSingle();
     if (!loja) return json({ error: "Catálogo não encontrado" }, 404);
 
-    // ─── 2. Recalcula os itens a partir do banco — NUNCA confia no preço  ──
-    //        enviado pelo cliente. Ignora produto_id repetido/malformado.
-    const produtoIds = [...new Set(rawItems.map((i) => i.produto_id).filter((id): id is string => typeof id === "string"))];
-    if (produtoIds.length === 0) return json({ error: "Carrinho inválido" }, 400);
+    // Consolida o carrinho por produto ANTES da validação de estoque e da
+    // criação da venda. Assim, um cliente não consegue enviar o mesmo
+    // produto em duas linhas e transformar 2 + 2 em duas linhas distintas.
+    const requestedQtyByProduct = new Map<string, number>();
+    for (const raw of rawItems) {
+      if (typeof raw.produto_id !== "string" || !raw.produto_id) {
+        return json({ error: "Carrinho inválido" }, 400);
+      }
+      const parsedQty = Math.trunc(Number(raw.quantidade));
+      if (!Number.isFinite(parsedQty) || parsedQty < 1) {
+        return json({ error: `Quantidade inválida para o produto ${raw.produto_id}.` }, 400);
+      }
+      const current = requestedQtyByProduct.get(raw.produto_id) ?? 0;
+      const next = current + parsedQty;
+      if (!Number.isSafeInteger(next)) return json({ error: "Quantidade do carrinho inválida." }, 400);
+      requestedQtyByProduct.set(raw.produto_id, next);
+    }
 
+    const produtoIds = Array.from(requestedQtyByProduct.keys());
     const { data: produtos } = await admin
       .from("produtos")
       .select("id, nome, preco_venda, ativo, estoque(quantidade)")
@@ -133,10 +144,9 @@ Deno.serve(async (req) => {
 
     const produtoMap = new Map((produtos ?? []).map((p: any) => [p.id, p]));
     const itensValidados: Array<{ produto_id: string; nome: string; quantidade: number; preco_unit: number }> = [];
-    for (const raw of rawItems) {
-      const produto = raw.produto_id ? produtoMap.get(raw.produto_id) : null;
-      const quantidade = Math.max(1, Math.trunc(Number(raw.quantidade) || 0));
-      if (!produto || !produto.ativo) return json({ error: `Produto indisponível no catálogo (${raw.produto_id}).` }, 400);
+    for (const [produtoId, quantidade] of requestedQtyByProduct) {
+      const produto = produtoMap.get(produtoId);
+      if (!produto || !produto.ativo) return json({ error: `Produto indisponível no catálogo (${produtoId}).` }, 400);
       const estoqueDisponivel = Array.isArray(produto.estoque)
         ? produto.estoque.reduce((s: number, e: any) => s + (e.quantidade ?? 0), 0)
         : 0;
@@ -150,7 +160,6 @@ Deno.serve(async (req) => {
     const baseAmountCentavos = Math.round(subtotalReais * 100);
     if (baseAmountCentavos <= 0) return json({ error: "Total inválido" }, 400);
 
-    // ─── 3. Recipient da loja + plataforma ──────────────────────────────────
     const secretKey = await getPagarmeSecretKey();
     if (!secretKey) return json({ error: "Este catálogo ainda não está pronto para receber pagamentos. Tente novamente mais tarde." }, 503);
     let platformRecipientId: string;
@@ -161,13 +170,10 @@ Deno.serve(async (req) => {
     if (sellerRecipientId && (await isPlatformRecipient(sellerRecipientId))) sellerRecipientId = null;
     if (sellerRecipientId) {
       try { await assertSellerRecipientId(sellerRecipientId); }
-      catch { sellerRecipientId = null; } // config inconsistente: segue sem split em vez de bloquear a compra do cliente
+      catch { sellerRecipientId = null; }
     }
-    if (!sellerRecipientId) {
-      return json({ error: "Este catálogo ainda não está pronto para receber pagamentos. Tente novamente mais tarde." }, 503);
-    }
+    if (!sellerRecipientId) return json({ error: "Este catálogo ainda não está pronto para receber pagamentos. Tente novamente mais tarde." }, 503);
 
-    // ─── 4. Valida dados de pagamento ───────────────────────────────────────
     const address = normalizeAddress(customer?.address);
     if (!address) return json({ error: "Endereço é obrigatório: rua, número, CEP, bairro, cidade e UF." }, 400);
     const installments = paymentMethod === "credit_card" ? (card?.installments ?? 1) : 1;
@@ -181,9 +187,6 @@ Deno.serve(async (req) => {
     const { totalAmount, platformAmount, sellerAmount, safeInstallments } = calculateSplit(baseAmountCentavos, installments, true);
     const splitConfig = buildSplit(platformAmount, sellerAmount, platformRecipientId, sellerRecipientId);
 
-    // ─── 5. Cria a venda ANTES de cobrar (mesmo padrão do resto do app: o    ─
-    //        trigger de estoque no insert de venda_itens é a checagem final,
-    //        mais forte que a que já fizemos acima contra corrida/concorrência).
     const { data: venda, error: vendaErr } = await admin
       .from("vendas")
       .insert({
@@ -215,7 +218,6 @@ Deno.serve(async (req) => {
       return json({ error: semEstoque ? "Um dos itens ficou sem estoque enquanto você finalizava o pedido." : "Não foi possível registrar o pedido." }, 409);
     }
 
-    // ─── 6. Cobra no Pagar.me ────────────────────────────────────────────────
     const orderPayload: Record<string, unknown> = {
       closed: false,
       items: itensValidados.map((i) => ({ amount: Math.round(i.preco_unit * 100), description: i.nome.slice(0, 255), quantity: i.quantidade })),
