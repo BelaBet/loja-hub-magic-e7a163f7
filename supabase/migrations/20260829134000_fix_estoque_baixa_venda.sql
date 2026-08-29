@@ -25,8 +25,9 @@ WHERE estoque_baixado = false
   AND pagamento_status = 'pago';
 
 -- Helper específico para os triggers de venda e venda_itens.
--- A função trava a venda, agrega itens repetidos e distribui a baixa entre
--- os depósitos sem descontar a mesma quantidade de cada depósito.
+-- A função trava a venda, depois trava os registros de estoque envolvidos,
+-- valida o estoque sob lock e distribui a baixa entre os depósitos sem
+-- descontar a mesma quantidade de cada depósito.
 CREATE OR REPLACE FUNCTION public.processar_baixa_estoque_venda(_venda_id uuid)
 RETURNS void
 LANGUAGE plpgsql
@@ -62,18 +63,30 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Ordena os produtos para reduzir risco de deadlock entre duas vendas.
   FOR req IN
     SELECT produto_id, SUM(quantidade) AS quantidade
     FROM public.venda_itens
     WHERE venda_id = v.id
       AND produto_id IS NOT NULL
     GROUP BY produto_id
+    ORDER BY produto_id
   LOOP
-    SELECT COALESCE(SUM(e.quantidade), 0)
-      INTO estoque_total
-    FROM public.estoque e
-    WHERE e.produto_id = req.produto_id
-      AND e.loja_id = v.loja_id;
+    estoque_total := 0;
+
+    -- Primeiro trava TODAS as linhas de estoque do produto e só então
+    -- calcula a disponibilidade. Isso impede duas vendas concorrentes de
+    -- validarem o mesmo saldo simultaneamente.
+    FOR est IN
+      SELECT e.id, e.quantidade
+      FROM public.estoque e
+      WHERE e.produto_id = req.produto_id
+        AND e.loja_id = v.loja_id
+      ORDER BY CASE WHEN e.deposito = 'principal' THEN 0 ELSE 1 END, e.id
+      FOR UPDATE
+    LOOP
+      estoque_total := estoque_total + COALESCE(est.quantidade, 0);
+    END LOOP;
 
     IF estoque_total < req.quantidade THEN
       RAISE EXCEPTION 'Estoque insuficiente para concluir a venda %', v.id;
@@ -81,7 +94,7 @@ BEGIN
 
     restante := req.quantidade;
 
-    -- Prioriza o depósito principal e depois os demais.
+    -- Distribui a baixa entre os depósitos, priorizando o principal.
     FOR est IN
       SELECT e.id, e.quantidade
       FROM public.estoque e
