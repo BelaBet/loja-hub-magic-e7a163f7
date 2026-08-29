@@ -11,6 +11,7 @@ import { Search, Package, MessageCircle, Store, ShoppingCart } from "lucide-reac
 import { toast } from "sonner";
 import { useCatalogCart } from "@/hooks/useCatalogCart";
 import { QuantitySelector } from "@/components/catalogo/QuantitySelector";
+import { ProductGrid } from "@/components/catalogo/ProductGrid";
 import { CartDrawer } from "@/components/catalogo/CartDrawer";
 import { CatalogPaymentModal } from "@/components/catalogo/CatalogPaymentModal";
 import { BACKGROUND_PRESETS, type BackgroundType } from "@/lib/catalogBackgrounds";
@@ -165,8 +166,6 @@ const CatalogoPublico = () => {
   const bgImage =
     bgType === "custom_image" ? loja?.background_image_url ?? undefined : activePreset?.kind === "photo" ? activePreset.image : undefined;
 
-  // Cards ganham fundo mais opaco, sombra e um contorno sutil pra se destacarem
-  // do plano de fundo (evita que fiquem "lavados" contra o overlay fosco).
   const glassCard = hasBg && "bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur-sm";
 
   return (
@@ -212,9 +211,7 @@ const CatalogoPublico = () => {
             <h1 className="font-display text-lg font-bold truncate text-white">
               {loading ? <Skeleton className="h-5 w-40" /> : loja?.nome}
             </h1>
-            <p className="mono text-[10px] uppercase tracking-widest text-white/70">
-              Catálogo
-            </p>
+            <p className="mono text-[10px] uppercase tracking-widest text-white/70">Catálogo</p>
           </div>
           <button
             type="button"
@@ -309,10 +306,7 @@ const CatalogoPublico = () => {
             {preview.categoria && (
               <Badge variant="outline" className="mono text-[10px]">{preview.categoria}</Badge>
             )}
-            <div
-              className="num text-3xl font-bold"
-              style={{ color: "var(--brand-primary)" }}
-            >
+            <div className="num text-3xl font-bold" style={{ color: "var(--brand-primary)" }}>
               {brl(preview.preco_venda)}
             </div>
             {preview.descricao && (
@@ -320,16 +314,11 @@ const CatalogoPublico = () => {
             )}
             {loja?.telefone && (
               <a
-                href={
-                  whatsappLink(`Olá! Tenho interesse no produto: ${preview.nome} (${brl(preview.preco_venda)})`) ?? "#"
-                }
+                href={whatsappLink(`Olá! Tenho interesse no produto: ${preview.nome} (${brl(preview.preco_venda)})`) ?? "#"}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button
-                  className="w-full h-12 text-white hover:opacity-90"
-                  style={{ background: "var(--brand-secondary)" }}
-                >
+                <Button className="w-full h-12 text-white hover:opacity-90" style={{ background: "var(--brand-secondary)" }}>
                   <MessageCircle className="h-4 w-4 mr-1" /> Tenho interesse no WhatsApp
                 </Button>
               </a>
@@ -377,164 +366,3 @@ const CatalogoPublico = () => {
 };
 
 export default CatalogoPublico;
-
-type GridProps = {
-  mode: "list" | "grid" | "instaview";
-  accent: string;
-  items: ProdutoPub[];
-  qtyByProduct: Record<string, number>;
-  setQty: (id: string, v: number) => void;
-  handleAdd: (p: ProdutoPub) => void;
-  setPreview: (p: ProdutoPub) => void;
-  oosBehavior: "hide" | "show_unavailable" | "show_normal";
-  hasBg?: boolean;
-};
-
-function ProductGrid({ mode, accent, items, qtyByProduct, setQty, handleAdd, setPreview, oosBehavior, hasBg }: GridProps) {
-  const stockOf = (p: ProdutoPub) => p.estoque?.[0]?.quantidade ?? null;
-  const isOOS = (p: ProdutoPub) => {
-    const q = stockOf(p);
-    return q !== null && q <= 0;
-  };
-  const treatAsUnavailable = (p: ProdutoPub) =>
-    isOOS(p) && oosBehavior === "show_unavailable";
-
-  // Fundo mais opaco + sombra + contorno sutil pra o card se destacar do plano de
-  // fundo; a imagem do produto ganha um anel interno pra não "sumir" dentro do card.
-  const glassCard = hasBg && "bg-white/95 shadow-xl ring-1 ring-black/5 backdrop-blur-sm";
-  const imageFrame = hasBg && "ring-1 ring-inset ring-black/10";
-
-  if (mode === "list") {
-    return (
-      <div className="flex flex-col gap-2">
-        {items.map((p) => {
-          const foto = p.fotos?.[0];
-          const unavailable = treatAsUnavailable(p);
-          return (
-            <Card
-              key={p.id}
-              className={cn("p-3 flex gap-3 items-center", unavailable && "opacity-60", glassCard)}
-            >
-              <button onClick={() => setPreview(p)} className={cn("h-16 w-16 rounded bg-muted overflow-hidden shrink-0", imageFrame)}>
-                {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
-                  : <Package className="h-6 w-6 m-auto mt-5 text-muted-foreground opacity-40" />}
-              </button>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-display font-semibold leading-tight line-clamp-1">{p.nome}</h3>
-                {p.descricao && <p className="text-xs text-muted-foreground line-clamp-1">{p.descricao}</p>}
-                <div className="num text-base font-bold mt-1" style={{ color: accent }}>{brl(p.preco_venda)}</div>
-              </div>
-              {unavailable ? (
-                <Badge className="text-white border-0" style={{ background: accent }}>Esgotado</Badge>
-              ) : (
-                <Button
-                  size="sm"
-                  className="text-white hover:opacity-90 shrink-0"
-                  style={{ background: accent }}
-                  onClick={() => handleAdd(p)}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                </Button>
-              )}
-            </Card>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (mode === "instaview") {
-    return (
-      <div className="max-w-md mx-auto flex flex-col gap-6">
-        {items.map((p) => {
-          const foto = p.fotos?.[0];
-          const unavailable = treatAsUnavailable(p);
-          const estoqueQtd = stockOf(p);
-          const qty = qtyByProduct[p.id] ?? 1;
-          return (
-            <Card
-              key={p.id}
-              className={cn("p-0 overflow-hidden", unavailable && "opacity-60", glassCard)}
-            >
-              <button onClick={() => setPreview(p)} className={cn("block w-full aspect-square bg-muted", imageFrame)}>
-                {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
-                  : <Package className="h-16 w-16 m-auto mt-20 text-muted-foreground opacity-30" />}
-              </button>
-              <div className="p-4">
-                <h3 className="font-display text-lg font-semibold">{p.nome}</h3>
-                {p.descricao && <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{p.descricao}</p>}
-                <div className="num text-2xl font-bold mt-2" style={{ color: accent }}>{brl(p.preco_venda)}</div>
-                {unavailable ? (
-                  <Button disabled className="w-full h-11 mt-3">Esgotado</Button>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    <QuantitySelector value={qty} onChange={(v) => setQty(p.id, v)} max={estoqueQtd} size="sm" />
-                    <Button className="w-full h-11 text-white hover:opacity-90" style={{ background: accent }} onClick={() => handleAdd(p)}>
-                      <ShoppingCart className="h-4 w-4 mr-1" />Adicionar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    );
-  }
-
-  // grid (default)
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-      {items.map((p) => {
-        const foto = p.fotos?.[0];
-        const unavailable = treatAsUnavailable(p);
-        const estoqueQtd = stockOf(p);
-        const qty = qtyByProduct[p.id] ?? 1;
-        return (
-          <Card
-            key={p.id}
-            className={cn(
-              "p-0 overflow-hidden hover:shadow-soft-md transition-shadow flex flex-col",
-              unavailable && "opacity-60",
-              glassCard,
-            )}
-          >
-            <div className={cn("relative aspect-square bg-muted cursor-pointer", imageFrame)} onClick={() => setPreview(p)}>
-              {foto ? <img src={foto} alt={p.nome} className="h-full w-full object-cover" />
-                : <div className="h-full w-full flex items-center justify-center"><Package className="h-10 w-10 text-muted-foreground opacity-30" /></div>}
-              {unavailable && (
-                <Badge className="absolute top-2 left-2 text-white border-0 mono text-[10px]" style={{ background: accent }}>
-                  Esgotado
-                </Badge>
-              )}
-            </div>
-            <div className="p-4 flex-1 flex flex-col">
-              <h3 className="font-display font-semibold leading-tight line-clamp-2 cursor-pointer" onClick={() => setPreview(p)}>{p.nome}</h3>
-              {p.categoria && (
-                <div className="mono text-[10px] uppercase tracking-widest text-muted-foreground mt-1">{p.categoria}</div>
-              )}
-              <div className="num text-xl font-bold mt-2" style={{ color: accent }}>{brl(p.preco_venda)}</div>
-              <div className="mt-3 flex flex-col gap-2">
-                {unavailable ? (
-                  <Button disabled className="w-full h-11">Esgotado</Button>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <QuantitySelector value={qty} onChange={(v) => setQty(p.id, v)} max={estoqueQtd} size="sm" />
-                      {estoqueQtd !== null && qty >= estoqueQtd && (
-                        <span className="mono text-[10px] text-muted-foreground">Máx: {estoqueQtd}</span>
-                      )}
-                    </div>
-                    <Button className="w-full h-11 text-white hover:opacity-90" style={{ background: accent }} onClick={() => handleAdd(p)}>
-                      <ShoppingCart className="h-4 w-4 mr-1" />Adicionar
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
