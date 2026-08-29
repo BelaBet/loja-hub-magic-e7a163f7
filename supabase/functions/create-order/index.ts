@@ -4,11 +4,12 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { assertSellerRecipientId, getPlatformRecipientId, isPlatformRecipient, PlatformRecipientError } from "../_shared/platformRecipient.ts";
 import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
 const PAGARME_BASE_URL = "https://api.pagar.me/core/v5";
-const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 const PLATFORM_BASE_RATE = 0.0096;
 const INSTALLMENT_RATE = 0.011;
 const STONE_MDR_RATE = 0.0204;
 const BASE_FEE_RATE = PLATFORM_BASE_RATE + STONE_MDR_RATE;
+
+const corsHeaders = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
 function calculateSplit(baseAmount: number, installments: number, passToCustomer: boolean) {
   const safeInstallments = Math.min(12, Math.max(1, Math.trunc(installments || 1)));
@@ -29,35 +30,10 @@ function buildSplit(platformAmount: number, sellerAmount: number, platformRecipi
   ];
 }
 
-type AddressData = {
-  street: string;
-  number: string;
-  complement?: string;
-  zip_code: string;
-  neighborhood: string;
-  city: string;
-  state: string;
-  country?: string;
-};
-type CustomerData = {
-  name?: string;
-  email?: string;
-  type?: "individual" | "company";
-  document?: string;
-  area_code?: string;
-  phone?: string;
-  address?: AddressData;
-};
+type AddressData = { street: string; number: string; complement?: string; zip_code: string; neighborhood: string; city: string; state: string; country?: string };
+type CustomerData = { name?: string; email?: string; type?: "individual" | "company"; document?: string; area_code?: string; phone?: string; address?: AddressData };
 type CardData = { number: string; holder_name: string; exp_month: number; exp_year: number; cvv: string; installments?: number; statement_descriptor?: string };
-type Body = {
-  payment_method: "pix" | "credit_card" | "debit_card";
-  amount: number;
-  venda_id?: string;
-  customer?: CustomerData;
-  items?: Array<{ amount: number; description: string; quantity: number; code?: string }>;
-  card?: CardData;
-  pass_surcharge_to_customer?: boolean;
-};
+type Body = { payment_method: "pix" | "credit_card" | "debit_card"; amount: number; venda_id?: string; customer?: CustomerData; items?: Array<{ amount: number; description: string; quantity: number; code?: string }>; card?: CardData; pass_surcharge_to_customer?: boolean };
 
 function luhnValid(value: string) {
   let sum = 0, doubleDigit = false;
@@ -74,14 +50,9 @@ function luhnValid(value: string) {
 function normalizeAddress(address: AddressData | undefined) {
   if (!address) return null;
   const normalized = {
-    street: String(address.street ?? "").trim(),
-    number: String(address.number ?? "").trim(),
-    complement: String(address.complement ?? "").trim(),
-    zip_code: String(address.zip_code ?? "").replace(/\D/g, ""),
-    neighborhood: String(address.neighborhood ?? "").trim(),
-    city: String(address.city ?? "").trim(),
-    state: String(address.state ?? "").trim().toUpperCase(),
-    country: String(address.country ?? "BR").trim().toUpperCase(),
+    street: String(address.street ?? "").trim(), number: String(address.number ?? "").trim(), complement: String(address.complement ?? "").trim(),
+    zip_code: String(address.zip_code ?? "").replace(/\D/g, ""), neighborhood: String(address.neighborhood ?? "").trim(), city: String(address.city ?? "").trim(),
+    state: String(address.state ?? "").trim().toUpperCase(), country: String(address.country ?? "BR").trim().toUpperCase(),
   };
   if (!normalized.street || !normalized.number || !normalized.zip_code || !normalized.neighborhood || !normalized.city || !normalized.state || !normalized.country) return null;
   if (!/^\d{8}$/.test(normalized.zip_code)) return null;
@@ -165,8 +136,7 @@ Deno.serve(async (req) => {
       customer: {
         name: customer?.name ?? "Cliente", email: customer?.email ?? "cliente@email.com", type: customer?.type ?? "individual",
         document: (customer?.document ?? "00000000000").replace(/\D/g, ""),
-        phones: { mobile_phone: { country_code: "55", area_code: customer?.area_code ?? "11", number: (customer?.phone ?? "999999999").replace(/\D/g, "") } },
-        address,
+        phones: { mobile_phone: { country_code: "55", area_code: customer?.area_code ?? "11", number: (customer?.phone ?? "999999999").replace(/\D/g, "") } }, address,
       },
       payments: [] as unknown[],
     };
@@ -176,23 +146,17 @@ Deno.serve(async (req) => {
       if (splitConfig) payment.split = splitConfig;
       (orderPayload.payments as unknown[]).push(payment);
     } else if (payment_method === "credit_card") {
-      const payment: Record<string, unknown> = {
-        payment_method: "credit_card", amount: totalAmount,
-        credit_card: { operation_type: "auth_and_capture", installments: safeInstallments, statement_descriptor: card!.statement_descriptor ?? "PDV", card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } },
-      };
+      const payment: Record<string, unknown> = { payment_method: "credit_card", amount: totalAmount, credit_card: { operation_type: "auth_and_capture", installments: safeInstallments, statement_descriptor: card!.statement_descriptor ?? "PDV", card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } } };
       if (splitConfig) payment.split = splitConfig;
       (orderPayload.payments as unknown[]).push(payment);
     } else {
-      const payment: Record<string, unknown> = {
-        payment_method: "debit_card", amount: totalAmount,
-        debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } },
-      };
+      const payment: Record<string, unknown> = { payment_method: "debit_card", amount: totalAmount, debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: { line_1: `${address.number}, ${address.street}${address.complement ? `, ${address.complement}` : ""}, ${address.neighborhood}`, zip_code: address.zip_code, city: address.city, state: address.state, country: address.country } } } };
       if (splitConfig) payment.split = splitConfig;
       (orderPayload.payments as unknown[]).push(payment);
     }
 
     const pagarmeRes = await fetch(`${PAGARME_BASE_URL}/orders`, {
-      method: "POST", headers: { Authorization: `Basic ${btoa(secretKey + ":")}`, "Content-Type": "application/json" }, body: JSON.stringify(orderPayload),
+      method: "POST", headers: { Authorization: `Basic ${btoa(secretKey + ":")}`, "Content-Type": "application/json", ...(venda_id ? { "Idempotency-Key": `venda-${venda_id}` } : {}) }, body: JSON.stringify(orderPayload),
     });
     const pagarmeData = await pagarmeRes.json();
     if (!pagarmeRes.ok) {
@@ -204,12 +168,7 @@ Deno.serve(async (req) => {
     const lastTransaction = charge?.last_transaction;
     if (venda_id && lojaId) {
       const paid = charge?.status === "paid" || pagarmeData.status === "paid";
-      const update: Record<string, unknown> = {
-        pagarme_order_id: pagarmeData.id,
-        pagarme_charge_id: charge?.id ?? null,
-        pagamento_status: paid ? "pago" : "pendente",
-        updated_at: new Date().toISOString(),
-      };
+      const update: Record<string, unknown> = { pagarme_order_id: pagarmeData.id, pagarme_charge_id: charge?.id ?? null, pagamento_status: paid ? "pago" : "pendente", updated_at: new Date().toISOString() };
       if (paid) { update.status = "concluida"; update.paid_at = new Date().toISOString(); }
       const { error: linkError } = await admin.from("vendas").update(update).eq("id", venda_id).eq("loja_id", lojaId);
       if (linkError) console.error("Falha ao vincular pedido à venda:", linkError);
