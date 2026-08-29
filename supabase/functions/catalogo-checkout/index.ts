@@ -2,18 +2,8 @@
 // uma compra feita no catálogo online (/c/:catalogId) — PIX, crédito ou
 // débito, com split entre loja e plataforma.
 //
-// Diferenças importantes em relação a create-order (uso interno/PDV):
-// - Não exige Bearer token de funcionário — qualquer visitante do catálogo
-//   pode chamar. Por isso, TUDO que vem do cliente é tratado como não
-//   confiável: preço e itens são SEMPRE recalculados a partir do banco
-//   (nunca aceitamos o "amount" que o front manda), e produto/estoque são
-//   conferidos contra a loja informada.
-// - Cria a venda (vendas + venda_itens) aqui mesmo, com payment_channel
-//   'catalogo_publico' e sem vendedor — não existe uma venda pré-criada
-//   por um funcionário como no fluxo interno.
-//
-// Secrets: PAGARME_SECRET_KEY, PAGARME_PLATFORM_RECIPIENT_ID (via helpers
-// compartilhados, mesmo padrão de create-order).
+// Tudo que vem do cliente é tratado como não confiável: preço e itens são
+// recalculados a partir do banco, e produto/estoque são conferidos contra a loja.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { assertSellerRecipientId, getPlatformRecipientId, isPlatformRecipient, PlatformRecipientError } from "../_shared/platformRecipient.ts";
 import { getPagarmeSecretKey } from "../_shared/pagarmeSecret.ts";
@@ -107,28 +97,18 @@ Deno.serve(async (req) => {
     const card: CardData | undefined = body?.card;
 
     if (!catalogId) return json({ error: "catalog_id é obrigatório" }, 400);
-    if (!["pix", "credit_card", "debit_card"].includes(paymentMethod ?? "")) {
-      return json({ error: "payment_method inválido (pix, credit_card ou debit_card)" }, 400);
-    }
+    if (!["pix", "credit_card", "debit_card"].includes(paymentMethod ?? "")) return json({ error: "payment_method inválido (pix, credit_card ou debit_card)" }, 400);
     if (rawItems.length === 0) return json({ error: "Carrinho vazio" }, 400);
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
     const { data: loja } = await admin.from("lojas").select("id, nome, pagarme_recipient_id").eq("id", catalogId).maybeSingle();
     if (!loja) return json({ error: "Catálogo não encontrado" }, 404);
 
-    // Consolida o carrinho por produto ANTES da validação de estoque e da
-    // criação da venda. Assim, um cliente não consegue enviar o mesmo
-    // produto em duas linhas e transformar 2 + 2 em duas linhas distintas.
     const requestedQtyByProduct = new Map<string, number>();
     for (const raw of rawItems) {
-      if (typeof raw.produto_id !== "string" || !raw.produto_id) {
-        return json({ error: "Carrinho inválido" }, 400);
-      }
+      if (typeof raw.produto_id !== "string" || !raw.produto_id) return json({ error: "Carrinho inválido" }, 400);
       const parsedQty = Math.trunc(Number(raw.quantidade));
-      if (!Number.isFinite(parsedQty) || parsedQty < 1) {
-        return json({ error: `Quantidade inválida para o produto ${raw.produto_id}.` }, 400);
-      }
+      if (!Number.isFinite(parsedQty) || parsedQty < 1) return json({ error: `Quantidade inválida para o produto ${raw.produto_id}.` }, 400);
       const current = requestedQtyByProduct.get(raw.produto_id) ?? 0;
       const next = current + parsedQty;
       if (!Number.isSafeInteger(next)) return json({ error: "Quantidade do carrinho inválida." }, 400);
@@ -136,29 +116,22 @@ Deno.serve(async (req) => {
     }
 
     const produtoIds = Array.from(requestedQtyByProduct.keys());
-    const { data: produtos } = await admin
-      .from("produtos")
-      .select("id, nome, preco_venda, ativo, estoque(quantidade)")
-      .eq("loja_id", catalogId)
-      .in("id", produtoIds);
-
+    const { data: produtos } = await admin.from("produtos").select("id, nome, preco_venda, ativo, estoque(quantidade)").eq("loja_id", catalogId).in("id", produtoIds);
     const produtoMap = new Map((produtos ?? []).map((p: any) => [p.id, p]));
     const itensValidados: Array<{ produto_id: string; nome: string; quantidade: number; preco_unit: number }> = [];
     for (const [produtoId, quantidade] of requestedQtyByProduct) {
       const produto = produtoMap.get(produtoId);
       if (!produto || !produto.ativo) return json({ error: `Produto indisponível no catálogo (${produtoId}).` }, 400);
-      const estoqueDisponivel = Array.isArray(produto.estoque)
-        ? produto.estoque.reduce((s: number, e: any) => s + (e.quantidade ?? 0), 0)
-        : 0;
-      if (quantidade > estoqueDisponivel) {
-        return json({ error: `Estoque insuficiente para "${produto.nome}" (disponível: ${estoqueDisponivel}).` }, 409);
-      }
-      itensValidados.push({ produto_id: produto.id, nome: produto.nome, quantidade, preco_unit: Number(produto.preco_venda) });
+      const estoqueDisponivel = Array.isArray(produto.estoque) ? produto.estoque.reduce((s: number, e: any) => s + (e.quantidade ?? 0), 0) : 0;
+      if (quantidade > estoqueDisponivel) return json({ error: `Estoque insuficiente para "${produto.nome}" (disponível: ${estoqueDisponivel}).` }, 409);
+      const preco = Number(produto.preco_venda);
+      if (!Number.isFinite(preco) || preco < 0) return json({ error: `Preço inválido para "${produto.nome}".` }, 409);
+      itensValidados.push({ produto_id: produto.id, nome: produto.nome, quantidade, preco_unit: preco });
     }
 
     const subtotalReais = itensValidados.reduce((s, i) => s + i.preco_unit * i.quantidade, 0);
     const baseAmountCentavos = Math.round(subtotalReais * 100);
-    if (baseAmountCentavos <= 0) return json({ error: "Total inválido" }, 400);
+    if (!Number.isSafeInteger(baseAmountCentavos) || baseAmountCentavos <= 0) return json({ error: "Total inválido" }, 400);
 
     const secretKey = await getPagarmeSecretKey();
     if (!secretKey) return json({ error: "Este catálogo ainda não está pronto para receber pagamentos. Tente novamente mais tarde." }, 503);
@@ -187,30 +160,22 @@ Deno.serve(async (req) => {
     const { totalAmount, platformAmount, sellerAmount, safeInstallments } = calculateSplit(baseAmountCentavos, installments, true);
     const splitConfig = buildSplit(platformAmount, sellerAmount, platformRecipientId, sellerRecipientId);
 
-    const { data: venda, error: vendaErr } = await admin
-      .from("vendas")
-      .insert({
-        loja_id: catalogId,
-        total: totalAmount / 100,
-        forma_pagamento: paymentMethod,
-        status: "concluida",
-        pagamento_status: "pendente",
-        payment_channel: "catalogo_publico",
-      })
-      .select("id")
-      .single();
+    // A venda começa pendente. "concluida" só pode ser atribuída depois da
+    // confirmação do pagamento pelo Pagar.me/webhook.
+    const { data: venda, error: vendaErr } = await admin.from("vendas").insert({
+      loja_id: catalogId,
+      total: totalAmount / 100,
+      forma_pagamento: paymentMethod,
+      status: "pendente",
+      pagamento_status: "pendente",
+      payment_channel: "catalogo_publico",
+    }).select("id").single();
     if (vendaErr || !venda) {
       console.error("Erro ao criar venda do catálogo:", vendaErr);
       return json({ error: "Não foi possível iniciar o pedido. Tente novamente." }, 500);
     }
 
-    const itensRows = itensValidados.map((i) => ({
-      venda_id: venda.id,
-      produto_id: i.produto_id,
-      quantidade: i.quantidade,
-      preco_unit: i.preco_unit,
-      desconto: 0,
-    }));
+    const itensRows = itensValidados.map((i) => ({ venda_id: venda.id, produto_id: i.produto_id, quantidade: i.quantidade, preco_unit: i.preco_unit, desconto: 0 }));
     const { error: itensErr } = await admin.from("venda_itens").insert(itensRows);
     if (itensErr) {
       await admin.from("vendas").delete().eq("id", venda.id);
@@ -222,12 +187,8 @@ Deno.serve(async (req) => {
       closed: false,
       items: itensValidados.map((i) => ({ amount: Math.round(i.preco_unit * 100), description: i.nome.slice(0, 255), quantity: i.quantidade })),
       customer: {
-        name: customer!.name!.trim(),
-        email: customer?.email ?? "cliente@email.com",
-        type: "individual",
-        document: (customer?.document ?? "00000000000").replace(/\D/g, ""),
-        phones: { mobile_phone: { country_code: "55", area_code: customer?.area_code ?? "11", number: (customer?.phone ?? "").replace(/\D/g, "") } },
-        address,
+        name: customer!.name!.trim(), email: customer?.email ?? "cliente@email.com", type: "individual", document: (customer?.document ?? "00000000000").replace(/\D/g, ""),
+        phones: { mobile_phone: { country_code: "55", area_code: customer?.area_code ?? "11", number: (customer?.phone ?? "").replace(/\D/g, "") } }, address,
       },
       payments: [] as unknown[],
     };
@@ -236,54 +197,34 @@ Deno.serve(async (req) => {
     if (paymentMethod === "pix") {
       (orderPayload.payments as unknown[]).push({ payment_method: "pix", pix: { expires_in: 3600 }, amount: totalAmount, split: splitConfig });
     } else if (paymentMethod === "credit_card") {
-      (orderPayload.payments as unknown[]).push({
-        payment_method: "credit_card", amount: totalAmount,
-        credit_card: { operation_type: "auth_and_capture", installments: safeInstallments, statement_descriptor: loja.nome.slice(0, 13), card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: billingAddress } },
-        split: splitConfig,
-      });
+      (orderPayload.payments as unknown[]).push({ payment_method: "credit_card", amount: totalAmount, credit_card: { operation_type: "auth_and_capture", installments: safeInstallments, statement_descriptor: loja.nome.slice(0, 13), card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: billingAddress } }, split: splitConfig });
     } else {
-      (orderPayload.payments as unknown[]).push({
-        payment_method: "debit_card", amount: totalAmount,
-        debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: billingAddress } },
-        split: splitConfig,
-      });
+      (orderPayload.payments as unknown[]).push({ payment_method: "debit_card", amount: totalAmount, debit_card: { card: { number: card!.number.replace(/\s/g, ""), holder_name: card!.holder_name.trim(), exp_month: card!.exp_month, exp_year: card!.exp_year, cvv: card!.cvv, billing_address: billingAddress } }, split: splitConfig });
     }
 
     const pagarmeRes = await fetch(`${PAGARME_BASE_URL}/orders`, {
-      method: "POST", headers: { Authorization: `Basic ${btoa(secretKey + ":")}`, "Content-Type": "application/json" }, body: JSON.stringify(orderPayload),
+      method: "POST",
+      headers: { Authorization: `Basic ${btoa(secretKey + ":")}`, "Content-Type": "application/json", "Idempotency-Key": `catalogo-${venda.id}` },
+      body: JSON.stringify(orderPayload),
     });
     const pagarmeData = await pagarmeRes.json().catch(() => null);
 
     if (!pagarmeRes.ok) {
       console.error("Erro Pagar.me (catálogo):", pagarmeData);
-      await admin.from("vendas").update({ pagamento_status: "falhou", updated_at: new Date().toISOString() }).eq("id", venda.id);
+      await admin.from("vendas").update({ pagamento_status: "falhou", status: "cancelada", updated_at: new Date().toISOString() }).eq("id", venda.id);
       return json({ error: pagarmeData?.message ?? "Pagamento recusado. Confira os dados e tente novamente." }, 422);
     }
 
     const charge = pagarmeData.charges?.[0];
     const lastTransaction = charge?.last_transaction;
     const paid = charge?.status === "paid" || pagarmeData.status === "paid";
-    const update: Record<string, unknown> = {
-      pagarme_order_id: pagarmeData.id,
-      pagarme_charge_id: charge?.id ?? null,
-      pagamento_status: paid ? "pago" : paymentMethod === "pix" ? "pendente" : "falhou",
-      updated_at: new Date().toISOString(),
-    };
-    if (paid) update.paid_at = new Date().toISOString();
-    await admin.from("vendas").update(update).eq("id", venda.id);
+    const update: Record<string, unknown> = { pagarme_order_id: pagarmeData.id, pagarme_charge_id: charge?.id ?? null, pagamento_status: paid ? "pago" : paymentMethod === "pix" ? "pendente" : "falhou", updated_at: new Date().toISOString() };
+    if (paid) { update.status = "concluida"; update.paid_at = new Date().toISOString(); }
+    else if (paymentMethod !== "pix") update.status = "cancelada";
+    const { error: updateErr } = await admin.from("vendas").update(update).eq("id", venda.id);
+    if (updateErr) console.error("Pagamento criado, mas falhou ao atualizar a venda:", updateErr);
 
-    return json({
-      ok: true,
-      venda_id: venda.id,
-      order_id: pagarmeData.id,
-      status: pagarmeData.status,
-      charge_status: charge?.status ?? null,
-      amount: totalAmount,
-      pix_qr_code: lastTransaction?.qr_code ?? null,
-      pix_qr_code_url: lastTransaction?.qr_code_url ?? null,
-      pix_expires_at: lastTransaction?.expires_at ?? null,
-      transaction_message: lastTransaction?.acquirer_message ?? lastTransaction?.gateway_response?.message ?? null,
-    });
+    return json({ ok: true, venda_id: venda.id, order_id: pagarmeData.id, status: pagarmeData.status, charge_status: charge?.status ?? null, amount: totalAmount, pix_qr_code: lastTransaction?.qr_code ?? null, pix_qr_code_url: lastTransaction?.qr_code_url ?? null, pix_expires_at: lastTransaction?.expires_at ?? null, transaction_message: lastTransaction?.acquirer_message ?? lastTransaction?.gateway_response?.message ?? null });
   } catch (err) {
     console.error("Erro interno catalogo-checkout:", err);
     return json({ error: err instanceof Error ? err.message : "Erro desconhecido" }, 500);
