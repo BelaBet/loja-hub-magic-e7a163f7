@@ -18,7 +18,8 @@ function sanitizeQty(value: unknown, estoque: number | null) {
   return qty;
 }
 
-function normalizeItems(value: unknown): CatalogCartItem[] {
+/** Normaliza e consolida linhas repetidas do mesmo produto. */
+export function normalizeItems(value: unknown): CatalogCartItem[] {
   if (!Array.isArray(value)) return [];
   const merged = new Map<string, CatalogCartItem>();
 
